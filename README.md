@@ -26,8 +26,8 @@ Note: A.
 To xxx, follow these steps:
 
 ```bash
-# Example command
-lsusb
+# Data saved directory
+cd /sdcard/Android/data/com.example.phone_vote/files/data/test/
 ```
 
 
