@@ -23,13 +23,14 @@ Note: A.
 
 ### A
 
-To xxx, follow these steps:
 
+Data saved directory
 ```bash
-# Data saved directory
 cd /sdcard/Android/data/com.example.phone_vote/files/data/test/
+```
 
-# Pull data from phone
+Pull data from phone
+```bash
 adb pull /sdcard/Android/data/com.example.phone_vote/files/data/test/ "D:\OneDrive - Southern Methodist University\Phone_Privacy\data\phone_s22"
 ```
 
