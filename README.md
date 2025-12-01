@@ -28,6 +28,9 @@ To xxx, follow these steps:
 ```bash
 # Data saved directory
 cd /sdcard/Android/data/com.example.phone_vote/files/data/test/
+
+# Pull data from phone
+adb pull /sdcard/Android/data/com.example.phone_vote/files/data/test/ "D:\OneDrive - Southern Methodist University\Phone_Privacy\data\phone_s22"
 ```
 
 
