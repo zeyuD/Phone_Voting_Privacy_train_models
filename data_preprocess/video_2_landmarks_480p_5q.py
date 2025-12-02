@@ -24,7 +24,8 @@ votes = ["A", "B", "C", "D", "E"]
 # Create a dictionary of setups, each will have different setup and users
 setups = {
     "phone_s22": {
-        "users": ["Zeyu"],
+        "users": ["jingwei", "Wen", "Zeyu"],
+        # "users": ["Wen"],
         "save_dir": "phone_s22/"
           }
 }
@@ -60,7 +61,7 @@ for setup, details in setups.items():
             num_instances = 0
             vid_file_list = []
             for f in files_in_folder:
-                if "downsample_480p" in f:
+                if "downsample_480p" in f and f.startswith(user):
                     vid_file_list.append(f)
                     num_instances += 1
                     # print("Found instance:", f)

@@ -4,25 +4,27 @@
 
 This repo is about the phone voting privacy project.
 
-Note: A.
+
 
 ## Current Progress
 ### 
-- A
+- Android app for video capturing while experiment, Zoom poll-like layout.
+- Face landmark and eye rotation extraction from video.
+- Transformer-based model to infere vote.
 
 
 ## Arranged To Do List
-- A
+- Optical flow-based algorithm.
 
 
 ## To Be Implemented
-- A
+- Additional sensing modality.
 
 
 ## Tips 
 
-### A
 
+### Pull videos from experiment Android phone
 
 Data saved directory
 ```bash
@@ -35,4 +37,20 @@ adb pull /sdcard/Android/data/com.example.phone_vote/files/data/test/ "D:\OneDri
 ```
 
 
-Note: A.
+
+### Preprocess videos
+
+Downsample (to 480p)
+```bash
+python data_preprocess/video_downsample_480p_5q.py
+```
+
+Extract landmarks from the downsampled videos
+```bash
+python data_preprocess/video_2_landmarks_480p_5q.py
+```
+
+Extract eye rotation from the downsampled videos
+```bash
+python run_subprocess_phone.py
+```

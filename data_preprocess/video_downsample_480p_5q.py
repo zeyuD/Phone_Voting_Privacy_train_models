@@ -19,7 +19,8 @@ votes = ["A", "B", "C", "D", "E"]
 
 # Create a dictionary of setups, each will have different setup and users
 setups = {
-    "phone_s22": ["Zeyu"],
+    "phone_s22": ["jingwei", "Wen", "Zeyu"],
+    # "phone_s22": ["Wen"],
           }
 
 # Loop through the variables and construct the video path for each combination
@@ -36,11 +37,11 @@ for setup in setups:
                 os.makedirs(output_directory)
             # find all video files in the data path end with ".mp4"
             video_files = os.listdir(data_directory)
-            video_files = [f for f in video_files if f.endswith(".mp4")]
+            video_files = [f for f in video_files if f.endswith(".mp4") and f.startswith(user)]
             for ins, video in enumerate(video_files):
                 # Construct the video path dynamically based on the current loop variables
                 video_path = os.path.join(data_directory, video)
-                # Replace the "record" to "angle" in the video name
+                # Replace the "record" to "downsample_480p" in the video name
                 output_vid_name = video.replace("record", "downsample_480p")
                 output_vid_path = os.path.join(output_directory, output_vid_name)
 
