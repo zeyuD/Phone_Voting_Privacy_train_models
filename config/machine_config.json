@@ -13,10 +13,10 @@
         "wsl_data_dir": "/mnt/d/OneDrive - Southern Methodist University/",
         "compdev": "cuda"
     },
-    "MistLab3660": {
-        "machine_type": "Windows Desktop",
-        "wsl_code_dir": "~/Projects/",
-        "wsl_data_dir": "/mnt/f/Zeyu/OneDrive - Southern Methodist University/",
+    "mistlab-precision-3660": {
+        "machine_type": "Ubuntu Desktop",
+        "code_dir": "~/ZProjects/",
+        "data_dir": "~/ZProjects_data/",
         "compdev": "cuda"
     },
     "slogin-01": {
