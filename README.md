@@ -24,6 +24,19 @@ This repo is about the phone voting privacy project.
 ## Tips 
 
 
+### Environment pre-requests
+
+Install mvts Transfomer package
+```bash
+pip install -r failsafe_requirements.txt
+```
+
+Create an experiments folder
+```bash
+mkdir experiments
+```
+
+
 ### Pull videos from experiment Android phone
 
 Data saved directory
