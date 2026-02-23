@@ -20,12 +20,13 @@ mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
 votes = ["A", "B", "C", "D", "E"]
+# votes = ["A"]
 
 # Create a dictionary of setups, each will have different setup and users
 setups = {
     "phone_s22": {
-        "users": ["jingwei", "Wen", "Zeyu"],
-        # "users": ["Wen"],
+        # "users": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
+        "users": ["ZeyuZoom"],
         "save_dir": "phone_s22/"
           }
 }

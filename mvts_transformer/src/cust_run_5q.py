@@ -19,6 +19,7 @@ for feature_name in feature_names:
     # df = pd.DataFrame(columns=vote_list)
     # df.to_csv("F1_avg.csv", index=False)
     # df2 = pd.DataFrame(columns=vote_list)
+    
     # df2.to_csv("FNR_avg.csv", index=False)
     df2 = pd.DataFrame(columns=['pred_labels', 'target_labels', 'score_A', 'score_B', 'score_C', 'score_D', 'score_E'])
     df2.to_csv("train_pred_labels.csv", index=False)

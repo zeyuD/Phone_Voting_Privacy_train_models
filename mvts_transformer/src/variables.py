@@ -15,9 +15,25 @@ compdev = config["compdev"]
 # vote_list = ["A", "B", "C"]
 vote_list = ["A", "B", "C", "D", "E"]
 
-# user_list = ["jingwei", "Wen", "Zeyu"]
-user_list = ["jingwei"]
-
-feature_names = ["all_norm_downsample_480p_s22"]
 num_try = 10
 num_round = 100
+
+user_list = ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", 
+             "Junwei", "Minjie", "minglei", "Mingxuan","Rosie", 
+             "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", 
+             "Ziyue1"]
+# user_list = ["Chuan", "Gujing", "Haofan", "Junwei", "Yirui"]
+# user_list = ["Zeyu"]
+
+grid_dim = "22"
+
+# feature_names = ["combine_opticalflow_" + grid_dim + "_all_feat_downsample_480p_s22"]
+feature_names = ["opticalflow_" + grid_dim + "_downsample_480p_s22"]
+# feature_names = ["opticalflowRAFT_" + grid_dim + "_downsample_480p_s22"]
+# feature_names = ["all_processpos_norm_downsample_480p_s22"]
+
+# feature_names = ["all_norm_downsample_480p_s22"]
+# feature_names = ["all_processpos_nonorm_downsample_480p_s22"]
+# feature_names = ["all_noprocesspos_norm_downsample_480p_s22"]
+# feature_names = ["all_noprocesspos_nonorm_downsample_480p_s22"]
+# feature_names = ["all_nonorm_downsample_480p_s22"]

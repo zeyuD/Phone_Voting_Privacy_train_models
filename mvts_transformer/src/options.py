@@ -21,8 +21,12 @@ class Options(object):
                                  help='Data directory')
         self.parser.add_argument('--num_fewshot', default=0,
                                  help='Number of few-shot examples to use')
+        self.parser.add_argument('--test_data_dir', default='./data',
+                                 help='Test Data directory')
         self.parser.add_argument('--target_user', default=None,
                                  help='Target user for the experiment')
+        self.parser.add_argument('--user_othersetting', default=None,
+                                 help='Target user for the other setting in cross-setting experiment')
         self.parser.add_argument('--load_model',
                                  help='Path to pre-trained model.')
         self.parser.add_argument('--resume', action='store_true',

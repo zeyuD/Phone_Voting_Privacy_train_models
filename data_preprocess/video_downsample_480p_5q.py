@@ -15,12 +15,13 @@ work_directory = config["data_dir"] + "Phone_Privacy/"
 
 # Sample lists for setups, votes, users, and instances
 votes = ["A", "B", "C", "D", "E"]
-# votes = ["E"]
+# votes = ["B", "C", "D", "E"]
+# votes = ["A"]
 
 # Create a dictionary of setups, each will have different setup and users
 setups = {
-    "phone_s22": ["jingwei", "Wen", "Zeyu"],
-    # "phone_s22": ["Wen"],
+    # "phone_s22": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
+    "phone_s22": ["minglei"],
           }
 
 # Loop through the variables and construct the video path for each combination
