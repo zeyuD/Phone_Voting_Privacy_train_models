@@ -8,4 +8,4 @@ config/machine_config.json
 functions/load_machine_config.py
 
 # Results
-results/
+mvts_transformer/experiments/*
