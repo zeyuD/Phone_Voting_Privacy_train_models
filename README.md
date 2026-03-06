@@ -67,3 +67,13 @@ Extract eye rotation from the downsampled videos
 ```bash
 python run_subprocess_phone.py
 ```
+
+
+
+### Remove files cached that are in .gitignore
+
+```bash
+git rm -r --cached .
+git add .
+
+```
