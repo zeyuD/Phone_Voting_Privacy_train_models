@@ -15,9 +15,30 @@ config = load_machine_config()
 work_directory = config["data_dir"] + "Phone_Privacy/"
 
 data_folder = work_directory + "data/phone_s22/"
-user = "ZeyuZoom" # ZeyuZoom
-offset = 3.9 #  for ZeyuZoom
-end_offset = 0.4
+
+# user = "JingweiZoom"
+# offset = 7.7 # for JingweiZoom
+# end_offset = 0.2 # for JingweiZoom
+
+# user = "mingleiZoom"
+# offset = 5.0 # for mingleiZoom
+# end_offset = 0.2 # for mingleiZoom
+
+# user = "MinjieZoom"
+# offset = 41.0 # for MinjieZoom
+# end_offset = 0.4 # for MinjieZoom
+
+# user = "WeiZoom"
+# offset = 7.0 # for WeiZoom
+# end_offset = 0.4 # for WeiZoom
+
+user = "WenZoom"
+offset = 7.4 # for WenZoom
+end_offset = 0.4 # for WenZoom
+
+# user = "ZeyuZoom"
+# offset = 3.9 # for ZeyuZoom
+# end_offset = 0.4 # for ZeyuZoom
 
 label_file = data_folder + user + "/" + user + "_correct_options.csv"
 zoom_video_file = data_folder + user + "/" + user + ".mov"

@@ -14,9 +14,9 @@ config = load_machine_config()
 
 user = "Zeyu" # Physical Camera: "Zeyu" 33.7%:
 user_setting = ""
-setting_other = "Zoom"
+setting_other = ""
 
-for other_setting in ["opticalflow_" + grid_dim + "_downsample_480p_s22"]: # "all_processpos_norm_downsample_480p_s22", "opticalflow_" + grid_dim + "_downsample_480p_s22"
+for other_setting in ["all_processpos_norm_downsample_480p_s22"]: # "all_processpos_norm_downsample_480p_s22", "opticalflow_" + grid_dim + "_downsample_480p_s22"
     setting_user = user.replace(user_setting, "")
     user_othersetting = setting_user + setting_other
     print("User:", user, "Other setting user:", user_othersetting)
