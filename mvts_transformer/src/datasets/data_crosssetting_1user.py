@@ -13,7 +13,7 @@ from sktime.utils import load_data
 
 from datasets import utils
 import random
-from variables import user_list, vote_list, user_othersetting_list
+from variables import user_list, vote_list
 
 logger = logging.getLogger('__main__')
 
@@ -120,7 +120,6 @@ class VRSkeleton(BaseData):
         self.config = config
         self.target_user = config["target_user"]
         self.user_othersetting = config["user_othersetting"]
-        self.user_othersetting_list = user_othersetting_list
 
         data_dir = root_dir + '/'
 
@@ -148,7 +147,7 @@ class VRSkeleton(BaseData):
         if self.use == 'train':
             seg_data_1 = pd.read_csv(data_dir + vote_list[0] + '/' + user_list[0] + '_' + vote_list[0] + '_1.csv', header=None)
         else:
-            seg_data_1 = pd.read_csv(data_dir + vote_list[0] + '/' + self.user_othersetting_list[0] + '_' + vote_list[0] + '_1.csv', header=None)
+            seg_data_1 = pd.read_csv(data_dir + vote_list[0] + '/' + self.user_othersetting + '_' + vote_list[0] + '_1.csv', header=None)
         num_dimensions = len(seg_data_1.columns)
         self.max_seq_len = len(seg_data_1)
         header_list = []
@@ -197,13 +196,12 @@ class VRSkeleton(BaseData):
                 # # target_user_files_train = random.sample(target_user_files, num_target_fewshot)
                 # # files.extend(target_user_files_train)
             elif self.use == 'test':
-                for user_othersetting in self.user_othersetting_list:
-                    user_othersetting_files = [
-                        file for file in os.listdir(test_path)
-                        if user_othersetting + "_" in file and not file.startswith('.') and
-                        int(file.split('_')[-1].split('.')[0]) % 2 == start_idx
-                    ]
-                    files.extend(user_othersetting_files)
+                user_othersetting_files = [
+                    file for file in os.listdir(test_path)
+                    if self.user_othersetting + "_" in file and not file.startswith('.') and
+                    int(file.split('_')[-1].split('.')[0]) % 2 == start_idx
+                ]
+                files.extend(user_othersetting_files)
 
             num_instance += len(files)
         labels = pd.DataFrame([0 for i in range(num_instance)], dtype=np.int32)
@@ -238,13 +236,12 @@ class VRSkeleton(BaseData):
                 print("Train files are", files)
                 print("Number of train files:", len(files))
             elif self.use == 'test':
-                for user_othersetting in self.user_othersetting_list:
-                    user_othersetting_files = [
-                        file for file in os.listdir(test_path)
-                        if user_othersetting + "_" in file and not file.startswith('.') and
-                        int(file.split('_')[-1].split('.')[0]) % 2 == start_idx
-                    ]
-                    files.extend(user_othersetting_files)
+                user_othersetting_files = [
+                    file for file in os.listdir(test_path)
+                    if self.user_othersetting + "_" in file and not file.startswith('.') and
+                    int(file.split('_')[-1].split('.')[0]) % 2 == start_idx
+                ]
+                files.extend(user_othersetting_files)
                 print("Test files are in", test_path)
                 print("Test files are", files)
                 print("Number of test files:", len(files))

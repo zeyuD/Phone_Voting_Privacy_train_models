@@ -11,3 +11,5 @@ functions/load_machine_config.py
 mvts_transformer/experiments/*
 # Except the .gitkeep file (the exclamation mark is an exception rule)
 !mvts_transformer/experiments/.gitkeep
+# all csv files
+mvts_transformer/*.csv

@@ -33,7 +33,7 @@ from sklearn.metrics import confusion_matrix
 from options import Options
 from running import setup, pipeline_factory, validate, check_progress, NEG_METRICS
 from utils import utils
-from datasets.data_crosssetting import data_factory, Normalizer
+from datasets.data_crosssetting_1user import data_factory, Normalizer
 from datasets.datasplit import split_dataset
 from models.ts_transformer import model_factory
 from models.loss import get_loss_module
