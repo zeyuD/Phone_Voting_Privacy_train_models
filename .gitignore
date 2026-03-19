@@ -13,3 +13,4 @@ mvts_transformer/experiments/*
 !mvts_transformer/experiments/.gitkeep
 # all csv files
 mvts_transformer/*.csv
+mvts_transformer/*.xls
