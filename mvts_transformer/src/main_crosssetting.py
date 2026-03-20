@@ -58,7 +58,7 @@ def main(config):
     if config['seed'] is not None:
         torch.manual_seed(config['seed'])
 
-    device = torch.device('cuda' if (torch.cuda.is_available() and config['gpu'] != '-1') else 'cpu')
+    device = config["device"]
     logger.info("Using device: {}".format(device))
     if device == 'cuda':
         logger.info("Device index: {}".format(torch.cuda.current_device()))

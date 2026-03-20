@@ -19,6 +19,8 @@ class Options(object):
                                  help='Root output directory. Must exist. Time-stamped directories will be created inside.')
         self.parser.add_argument('--data_dir', default='./data',
                                  help='Data directory')
+        self.parser.add_argument('--device', default='cuda',
+                                 help='Computation device, e.g. "cuda", "mps", or "cpu"')
         self.parser.add_argument('--num_fewshot', default=0,
                                  help='Number of few-shot examples to use')
         self.parser.add_argument('--test_data_dir', default='./data',
