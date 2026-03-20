@@ -12,5 +12,7 @@ mvts_transformer/experiments/*
 # Except the .gitkeep file (the exclamation mark is an exception rule)
 !mvts_transformer/experiments/.gitkeep
 # all csv files
+*.csv
+*.xls
 mvts_transformer/*.csv
 mvts_transformer/*.xls
