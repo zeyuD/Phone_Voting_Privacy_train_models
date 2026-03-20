@@ -23,6 +23,7 @@ config = load_machine_config()
 
 # If you can, run this example on a GPU, it will be a lot faster.
 device = "mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu"
+print("Using Device:", device)
 
 model = raft_large(pretrained=True, progress=False).to(device)
 model = model.eval()
