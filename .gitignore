@@ -23,4 +23,4 @@ mvts_transformer/src/__pycache__/
 mvts_transformer/src/datasets/__pycache__/
 mvts_transformer/src/model/__pycache__/
 mvts_transformer/src/utils/__pycache__/
-mvts_transformer/functions/__pycache__/
+functions/__pycache__/
