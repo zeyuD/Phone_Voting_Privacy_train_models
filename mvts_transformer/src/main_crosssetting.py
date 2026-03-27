@@ -310,12 +310,17 @@ def main(config):
     
     input_0 = test_data.feature_df.loc[0].values
     label_0 = test_data.labels_df.iloc[0].values
+    # Print label_0 and label_0's type
+    # print("Label of the first instance: ", label_0)
+    # print("Type of the label: ", type(label_0))
     # print("Created labels: ", targets)
     input = torch.tensor(input_0, dtype=torch.float32)
     # make input a batch of size 1
     input = input.unsqueeze(0)
     targets = [[0]*num_vote]
-    targets[0][int(label_0)] = 1
+    # targets[0][int(label_0)] = 1
+    # Fix 
+    targets[0][int(label_0.item())] = 1
     for ins in range(1, len(test_indices)):
         # print("Processing instance:", ins)
         input_i = test_data.feature_df.loc[ins].values
@@ -327,7 +332,8 @@ def main(config):
         input = torch.cat((input, input_i), dim=0)
         label_i = test_data.labels_df.iloc[ins].values
         target_i = [[0]*num_vote]
-        target_i[0][int(label_i)] = 1
+        # target_i[0][int(label_i)] = 1
+        target_i[0][int(label_i.item())] = 1
         targets = np.concatenate((targets, target_i), axis=0)
 
     # print(input)

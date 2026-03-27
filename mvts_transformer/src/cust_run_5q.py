@@ -10,6 +10,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 from load_machine_config import load_machine_config
 
 config = load_machine_config()
+device = config["compdev"]
 
 # determine number of instances
 num_instance = 0
@@ -35,6 +36,7 @@ for feature_name in feature_names:
                         "--name", "VRS_fromScratch",
                         "--records_file", "VRS_records.xls",
                         "--data_dir", config["data_dir"] + "Phone_Privacy/input_feature/" + feature_name,
+                        "--device", config["compdev"],
                         "--data_class", "vrs",
                         "--val_ratio", "0.1",
                         # "--test_ratio", "0.4",

@@ -88,7 +88,8 @@ for other_setting in ["all_processpos_norm_downsample_480p_s22"]: # "all_process
         print("Accuracy average:", acc_avg)
 
         avg_row = pd.Series(["Average"] + df5.mean(numeric_only=True).tolist(), index=df5.columns)
-        df5 = df5.append(avg_row, ignore_index=True)
+        # df5 = df5.append(avg_row, ignore_index=True)
+        df5 = pd.concat([df5, avg_row.to_frame().T], ignore_index=True)
         df5.to_csv("acc_avg_"+feature_name+"_teston_"+str(other_setting)+".csv", index=False)
 
         # df4 = pd.read_csv("pred_labels.csv")
@@ -97,7 +98,8 @@ for other_setting in ["all_processpos_norm_downsample_480p_s22"]: # "all_process
     df_final = pd.read_csv("acc_avg.csv")
     # Add a new row, user name is "Average", each value average
     final_row = pd.Series(["Average"] + df_final.mean(numeric_only=True).tolist(), index=df_final.columns)
-    df_final = df_final.append(final_row, ignore_index=True)
+    # df_final = df_final.append(final_row, ignore_index=True)
+    df_final = pd.concat([df_final, final_row.to_frame().T], ignore_index=True)
     print("Accuracy average:", df_final['Avg'].mean())
     df_final.to_csv("acc_avg_"+feature_name+"_teston_"+str(other_setting)+".csv", index=False)
 

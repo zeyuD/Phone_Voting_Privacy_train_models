@@ -58,7 +58,7 @@ def main(config):
     if config['seed'] is not None:
         torch.manual_seed(config['seed'])
 
-    device = torch.device('cuda' if (torch.cuda.is_available() and config['gpu'] != '-1') else 'cpu')
+    device = config["device"]
     logger.info("Using device: {}".format(device))
     if device == 'cuda':
         logger.info("Device index: {}".format(torch.cuda.current_device()))
@@ -321,9 +321,11 @@ def main(config):
     input = input.unsqueeze(0)
     train_input = train_input.unsqueeze(0)
     targets = [[0]*num_vote]
-    targets[0][int(label_0)] = 1
+    # targets[0][int(label_0)] = 1
+    targets[0][int(label_0.item())] = 1
     train_targets = [[0]*num_vote]
-    train_targets[0][int(label_train_0)] = 1
+    # train_targets[0][int(label_train_0)] = 1
+    train_targets[0][int(label_train_0.item())] = 1
     for ins in range(1, len(test_indices)):
         # print("Processing instance:", ins)
         input_i = test_data.feature_df.loc[ins].values
@@ -335,7 +337,8 @@ def main(config):
         input = torch.cat((input, input_i), dim=0)
         label_i = test_data.labels_df.iloc[ins].values
         target_i = [[0]*num_vote]
-        target_i[0][int(label_i)] = 1
+        # target_i[0][int(label_i)] = 1
+        target_i[0][int(label_i.item())] = 1
         targets = np.concatenate((targets, target_i), axis=0)
 
     for all_ins in range(1, len(my_data.all_IDs)):
@@ -345,7 +348,8 @@ def main(config):
         train_input = torch.cat((train_input, train_input_i), dim=0)
         train_labels = my_data.labels_df.loc[all_ins].values
         train_target_i = [[0]*num_vote]
-        train_target_i[0][int(train_labels)] = 1
+        # train_target_i[0][int(train_labels)] = 1
+        train_target_i[0][int(train_labels.item())] = 1
         train_targets = np.concatenate((train_targets, train_target_i), axis=0)
 
     model.eval()
