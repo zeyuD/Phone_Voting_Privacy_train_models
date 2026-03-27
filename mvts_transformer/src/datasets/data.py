@@ -168,8 +168,9 @@ class VRSkeleton(BaseData):
         for v in range(len(vote_list)):
             vote = vote_list[v]
             train_path = data_dir + vote
+            test_path = data_dir + vote
             for user in user_list:
-                files = [file for file in os.listdir(train_path) if user in file and not file.startswith('.')]
+                files = [file for file in os.listdir(train_path) if user + "_" in file and not file.startswith('.')]
                 num_instance += len(range(start_idx, len(files), 2))
         labels = pd.DataFrame([0 for i in range(num_instance)], dtype=np.int32)
         users = pd.DataFrame(['' for i in range(num_instance)], dtype='object')
@@ -179,7 +180,7 @@ class VRSkeleton(BaseData):
             train_path = data_dir + vote
             for user in user_list:
                 # Read number of files in path
-                files = [file for file in os.listdir(train_path) if user in file and not file.startswith('.')]
+                files = [file for file in os.listdir(train_path) if user + "_" in file and not file.startswith('.')]
                 # print("Number of files:", len(files))
                 data_idx = range(start_idx, len(files), 2)
                 for idx in data_idx:

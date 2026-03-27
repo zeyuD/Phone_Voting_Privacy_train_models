@@ -15,7 +15,7 @@ compdev = config["compdev"]
 # vote_list = ["A", "B", "C"]
 vote_list = ["A", "B", "C", "D", "E"]
 
-num_try = 10
+num_try = 1
 num_round = 100
 
 user_list = ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", 
@@ -36,9 +36,9 @@ user_list = ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei",
 grid_dim = "22"
 
 # feature_names = ["combine_opticalflow_" + grid_dim + "_all_feat_downsample_480p_s22"]
-# feature_names = ["opticalflow_" + grid_dim + "_downsample_480p_s22"]
+feature_names = ["opticalflow_" + grid_dim + "_downsample_480p_s22"]
 # feature_names = ["opticalflowRAFT_" + grid_dim + "_downsample_480p_s22"]
-feature_names = ["all_processpos_norm_downsample_480p_s22"]
+# feature_names = ["all_processpos_norm_downsample_480p_s22"]
 
 # feature_names = ["all_norm_downsample_480p_s22"]
 # feature_names = ["all_processpos_nonorm_downsample_480p_s22"]

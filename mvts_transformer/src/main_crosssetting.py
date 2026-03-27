@@ -300,7 +300,7 @@ def main(config):
     logger.info("Total runtime: {} hours, {} minutes, {} seconds\n".format(*utils.readable_time(total_runtime)))
 
     # First, some target user's data
-    # model = model.eval()
+    model = model.eval()
     # fps = 60
     # time_frag = 200
     # len_frag = math.floor(time_frag/1000 * fps)
