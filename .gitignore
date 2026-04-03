@@ -1,6 +1,7 @@
 # Dependencies from other projects
 
 # Test files
+*.mp4
 
 # Local configuration files
 archived/
