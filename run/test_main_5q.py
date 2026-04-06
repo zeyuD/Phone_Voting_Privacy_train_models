@@ -31,7 +31,7 @@ from sklearn.metrics import confusion_matrix
 
 # Project modules
 # Add parent directory of this file to sys.path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'mvts_transformer', 'src')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'mvts_transformer_M', 'src')))
 
 from options import Options
 from running import setup, pipeline_factory, validate, check_progress, NEG_METRICS

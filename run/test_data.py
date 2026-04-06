@@ -12,7 +12,7 @@ import pandas as pd
 from tqdm import tqdm
 
 # Add parent directory of this file to sys.path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'mvts_transformer')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'mvts_transformer_M')))
 from datasets import utils
 import random
 from test_variables import user_list, vote_list

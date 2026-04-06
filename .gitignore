@@ -28,3 +28,6 @@ mvts_transformer/src/__pycache__/
 mvts_transformer/src/datasets/__pycache__/
 mvts_transformer/src/model/__pycache__/
 mvts_transformer/src/utils/__pycache__/
+
+# Mac file system files
+.DS_Store
