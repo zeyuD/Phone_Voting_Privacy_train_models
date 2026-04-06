@@ -9,8 +9,10 @@ config/machine_config.json
 functions/load_machine_config.py
 
 # Results
+experiments/*
 mvts_transformer/experiments/*
 # Except the .gitkeep file (the exclamation mark is an exception rule)
+experiments/.gitkeep
 !mvts_transformer/experiments/.gitkeep
 # all csv files
 *.csv
@@ -20,8 +22,9 @@ mvts_transformer/*.xls
 
 # Python cache
 __pycache__/
+run/__pycache__/
+functions/__pycache__/
 mvts_transformer/src/__pycache__/
 mvts_transformer/src/datasets/__pycache__/
 mvts_transformer/src/model/__pycache__/
 mvts_transformer/src/utils/__pycache__/
-functions/__pycache__/
