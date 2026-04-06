@@ -53,7 +53,7 @@ for file in video_files:
     # Print progress by n/N
     n = video_files.index(file) + 1
     N = len(video_files)
-    print(f"Processing file {n}/{N}: {file}\r", end="")
+    print(f"Processing file {n}/{N}: {file}")
 
     vote = file.split('/')[-3]  # Extract vote from the file path
     # print(f"Processing file: {file}")
@@ -64,7 +64,11 @@ for file in video_files:
     save_file_name = os.path.basename(file_name).replace('_downsample_480p.mp4', '.csv')
     # print(f"Saving file: {save_path_folder + '/' + vote + '/' + save_file_name}")
 
-    motion_data = track_camera_motion(file)
+    try:
+        motion_data = track_camera_motion(file)
+    except Exception as e:
+        print(f"Error processing file {file}: {e}")
+        continue
 
     # Rotation data
     rotations = np.array([data['rotation'] for data in motion_data])
