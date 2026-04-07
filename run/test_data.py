@@ -172,8 +172,18 @@ class VRSkeleton(BaseData):
             train_path = data_dir + vote
             test_path = data_dir + vote
             for user in user_list:
-                files = [file for file in os.listdir(train_path) if user + "_" in file and not file.startswith('.')]
-                num_instance += len(range(start_idx, len(files), 2))
+                files = [file for file in os.listdir(train_path) if user + "_" in file and not file.startswith('.')]  
+                data_idx = range(start_idx, len(files), 2)
+                for idx in data_idx:
+                    file = files[idx]
+                    seg_data_i = pd.read_csv(train_path + '/' + file, header=None)
+                    data_i = pd.DataFrame(dtype=np.float32, columns=header_list)
+                    # Print if has NaN values
+                    if seg_data_i.isna().any().any():
+                        print("Warning: NaN values in file", file)
+                        # Skip this instance
+                        continue
+                    num_instance += 1
         labels = pd.DataFrame([0 for i in range(num_instance)], dtype=np.int32)
         users = pd.DataFrame(['' for i in range(num_instance)], dtype='object')
 
@@ -197,6 +207,8 @@ class VRSkeleton(BaseData):
                     # Print if has NaN values
                     if seg_data_i.isna().any().any():
                         print("Warning: NaN values in file", file)
+                        # Skip this instance
+                        continue
                     for dim in range(0, num_dimensions):
                         data_i['dim_' + str(dim)] = seg_data_i[dim]
                     data_i.index = [num_count] * len(data_i)

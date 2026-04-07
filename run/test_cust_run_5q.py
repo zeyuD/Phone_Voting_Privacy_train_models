@@ -12,9 +12,6 @@ from functions.load_machine_config import load_machine_config
 config = load_machine_config()
 device = config["compdev"]
 
-# determine number of instances
-num_instance = 0
-
 for feature_name in feature_names:
     # Create an empty dataframe, columns are user names
     # df = pd.DataFrame(columns=vote_list)

@@ -10,7 +10,6 @@ from functions.load_machine_config import load_machine_config
 config = load_machine_config()
 device = config["compdev"]
 
-
 # print("User: ", user)
 subprocess.run(["python", "run/main_5q_combineFeat.py",
                 "--output_dir", "experiments",

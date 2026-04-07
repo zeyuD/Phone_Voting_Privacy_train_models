@@ -15,15 +15,16 @@ compdev = config["compdev"]
 # vote_list = ["A", "B", "C"]
 vote_list = ["A", "B", "C", "D", "E"]
 
-num_try = 5
+num_try = 1
 num_round = 100
 
 user_list = ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", 
              "Junwei", "minglei", "Minjie", "Mingxuan","Rosie", 
              "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", 
-             "Ziyue1"]
+            #  "Ziyue1"
+             ]
 # user_list = ["Chuan", "Gujing", "Haofan", "Junwei", "Yirui"]
-# user_list = ["Zeyu"]
+# user_list = ["Chuan"]
 # user_list = ["ZeyuZoom"]
 
 # user_list = ["Jingwei", "minglei", "Minjie", "Wen", "Zeyu"]
@@ -40,4 +41,9 @@ grid_dim = "22"
 # feature_names = ["opticalflowRAFT_" + grid_dim + "_downsample_480p_s22"]
 # feature_names = ["all_processpos_norm_downsample_480p_s22"]
 # feature_names = ["egomotion_rot_downsample_480p_s22"]
-feature_names = ["all_processpos_norm_downsample_480p_s22", "opticalflow_" + grid_dim + "_downsample_480p_s22", "egomotion_rot_downsample_480p_s22"]
+feature_names = [
+    "opticalflowRAFT_" + grid_dim + "_downsample_480p_s22",
+    "opticalflowRAFT_border_" + grid_dim + "_downsample_480p_s22",
+    "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_s22",
+    "opticalflowRAFT_obj_" + grid_dim + "_downsample_480p_s22"
+    ]
