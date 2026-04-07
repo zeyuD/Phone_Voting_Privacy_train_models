@@ -7,6 +7,7 @@ import pandas as pd
 import torchvision.transforms.functional as F
 import torchvision.transforms as T
 from torchvision.models.optical_flow import raft_large
+from ultralytics import YOLO
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'functions')))
 from load_machine_config import load_machine_config
@@ -26,7 +27,8 @@ model = raft_large(pretrained=True, progress=False).to(compdev)
 model = model.eval()
 
 
-votes = ["A", "B", "C", "D", "E"]
+votes = ["A"]
+# votes = ["A", "B", "C", "D", "E"]
 M = 2
 N = 2
 
@@ -41,7 +43,9 @@ setups = {
           }
 }
 suffix = "_downsample_480p_s22"
-prefix = "opticalflowRAFT_border_22"
+prefix_border = "opticalflowRAFT_border_22"
+prefix_edge = "opticalflowRAFT_edge_22"
+prefix_obj = "opticalflowRAFT_obj_22"
 
 
 def preprocess(batch):
@@ -129,6 +133,31 @@ def flow_to_arrow_edge(frame, flow):
     return avg_u, avg_v
 
 
+def flow_to_arrow_YOLO(frame, flow):
+    # Use a pre-trained YOLO model to detect objects in the frame, then average flow on those objects
+    model = YOLO("yolo26m.pt")
+    results = model(frame, verbose=False)
+    flow = flow.cpu().detach()
+    flow_u = flow[0, 0].numpy()  # horizontal flow
+    flow_v = flow[0, 1].numpy()  # vertical flow
+    # Here you would run YOLO detection on the frame and get bounding boxes for detected objects
+    avg_u = []
+    avg_v = []
+    for result in results:
+        boxes = result.boxes.xyxy.cpu().numpy()  # Get bounding boxes
+        for box in boxes:
+            x1, y1, x2, y2 = box.astype(int)
+            object_u = flow_u[y1:y2, x1:x2]
+            object_v = flow_v[y1:y2, x1:x2]
+            avg_u_b = np.mean(object_u)
+            avg_v_b = np.mean(object_v)
+            avg_u.append(avg_u_b)
+            avg_v.append(avg_v_b)
+    avg_u = np.mean(avg_u)
+    avg_v = np.mean(avg_v)
+    return avg_u, avg_v
+
+
 # Find all file directories
 video_files = []
 for vote in votes:
@@ -143,12 +172,22 @@ for vote in votes:
             video_files.extend([os.path.join(file_path_dir, f) for f in file_list_i])
 
 # Usage
-save_path_folder = save_directory + prefix + suffix
-if not os.path.exists(save_path_folder):
-    os.makedirs(save_path_folder)
+save_path_folder_border = save_directory + prefix_border + suffix
+save_path_folder_edge = save_directory + prefix_edge + suffix
+save_path_folder_obj = save_directory + prefix_obj + suffix
+if not os.path.exists(save_path_folder_border):
+    os.makedirs(save_path_folder_border)
+if not os.path.exists(save_path_folder_edge):
+    os.makedirs(save_path_folder_edge)
+if not os.path.exists(save_path_folder_obj):
+    os.makedirs(save_path_folder_obj)
 for vote in votes:
-    if not os.path.exists(save_path_folder + '/' + vote):
-        os.makedirs(save_path_folder + '/' + vote)
+    if not os.path.exists(save_path_folder_border + '/' + vote):
+        os.makedirs(save_path_folder_border + '/' + vote)
+    if not os.path.exists(save_path_folder_edge + '/' + vote):
+        os.makedirs(save_path_folder_edge + '/' + vote)
+    if not os.path.exists(save_path_folder_obj + '/' + vote):
+        os.makedirs(save_path_folder_obj + '/' + vote)
 for file in video_files:
     # Print progress by n/N
     n = video_files.index(file) + 1
@@ -176,7 +215,9 @@ for file in video_files:
     # No header, save as csv without index
     # num_row = M * N * 2
     num_row = 2
-    df_save = pd.DataFrame(columns=[f"flow_{i}" for i in range(num_row)])
+    df_border = pd.DataFrame(columns=[f"flow_{i}" for i in range(num_row)])
+    df_edge = pd.DataFrame(columns=[f"flow_{i}" for i in range(num_row)])
+    df_obj = pd.DataFrame(columns=[f"flow_{i}" for i in range(num_row)])
 
     # Get optical flow for all frames in the video
     while True:
@@ -209,17 +250,23 @@ for file in video_files:
             final_predicted_flow = predicted_flow[-1]
             # Convert the flow to arrow on image
             # x, y, u, v = flow_to_arrow(final_predicted_flow, [M, N], threshold=1.0)
-            u, v = flow_to_arrow_border(final_predicted_flow)
+            u_border, v_border = flow_to_arrow_border(final_predicted_flow)
+            u_edge, v_edge = flow_to_arrow_edge(frame_rgb, final_predicted_flow)
+            u_obj, v_obj = flow_to_arrow_YOLO(frame_rgb, final_predicted_flow)
             # print(f"Processing frame {frame_count} with {len(x)} arrows")
             # Save the flow data into dataframe
-            flow_data = [u, v]
+            flow_data_border = [u_border, v_border]
+            flow_data_edge = [u_edge, v_edge]
+            flow_data_obj = [u_obj, v_obj]
             # flow_data = []
             # for i in range(len(x)):
             #     flow_data.append(u[i])
             # for i in range(len(x)):
             #     flow_data.append(v[i])
 
-            df_save = pd.concat([df_save, pd.DataFrame([flow_data], columns=[f"flow_{i}" for i in range(num_row)])])
+            df_border = pd.concat([df_border, pd.DataFrame([flow_data_border], columns=[f"flow_{i}" for i in range(num_row)])])
+            df_edge = pd.concat([df_edge, pd.DataFrame([flow_data_edge], columns=[f"flow_{i}" for i in range(num_row)])])
+            df_obj = pd.concat([df_obj, pd.DataFrame([flow_data_obj], columns=[f"flow_{i}" for i in range(num_row)])])
 
         else:
             break        
@@ -228,10 +275,16 @@ for file in video_files:
     #     print(f"Error processing file {file}: {e}")
     #     continue
 
-    flow_data_interp = interpolate_multiD(np.array(df_save, dtype=np.float64), target_length=80)
-    flow_data_norm = normalization(flow_data_interp, method='zscore')
+    flow_data_border_interp = interpolate_multiD(np.array(df_border, dtype=np.float64), target_length=80)
+    flow_data_border_norm = normalization(flow_data_border_interp, method='zscore')
+    flow_data_edge_interp = interpolate_multiD(np.array(df_edge, dtype=np.float64), target_length=80)
+    flow_data_edge_norm = normalization(flow_data_edge_interp, method='zscore')
+    flow_data_obj_interp = interpolate_multiD(np.array(df_obj, dtype=np.float64), target_length=80)
+    flow_data_obj_norm = normalization(flow_data_obj_interp, method='zscore')
     # Save the dataframe into csv
-    pd.DataFrame(flow_data_norm).to_csv(save_path_folder + '/' + vote + '/' + save_file_name, index=False, header=False)
+    pd.DataFrame(flow_data_border_norm).to_csv(save_path_folder_border + '/' + vote + '/' + save_file_name, index=False, header=False)
+    pd.DataFrame(flow_data_edge_norm).to_csv(save_path_folder_edge + '/' + vote + '/' + save_file_name, index=False, header=False)
+    pd.DataFrame(flow_data_obj_norm).to_csv(save_path_folder_obj + '/' + vote + '/' + save_file_name, index=False, header=False)
 
 print(" ")
 print("All files processed and saved.")
