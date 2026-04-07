@@ -7,7 +7,7 @@ import pandas as pd
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'functions')))
 from load_machine_config import load_machine_config
 from get_ego_motion import track_camera_motion
-from interpolat_multiD import interpolate_multiD
+from interpolate_multiD import interpolate_multiD
 from normalization import normalization
 
 config = load_machine_config()
@@ -29,7 +29,7 @@ setups = {
 suffix = "_downsample_480p_s22"
 prefix = "egomotion_rot"
 
-# File all file directories
+# Find all file directories
 video_files = []
 for vote in votes:
     for setup_name, setup_info in setups.items():

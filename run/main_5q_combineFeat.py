@@ -48,7 +48,6 @@ import matplotlib.pyplot as plt
 
 def main(config):
 
-    total_epoch_time = 0
     # total_eval_time = 0
 
     total_start_time = time.time()
@@ -174,6 +173,8 @@ def main(config):
     df4.to_csv("acc_avg.csv", index=False)
 
     for t in range(num_try):
+        
+        total_epoch_time = 0
         # Create model
         logger.info("Creating model ...")
         model = model_factory(config, my_data)
@@ -270,9 +271,9 @@ def main(config):
             avg_epoch_time = total_epoch_time / (epoch - start_epoch)
             avg_batch_time = avg_epoch_time / len(train_loader)
             avg_sample_time = avg_epoch_time / len(train_dataset)
-            logger.info("Avg epoch train. time: {} hours, {} minutes, {} seconds".format(*utils.readable_time(avg_epoch_time)))
-            logger.info("Avg batch train. time: {} seconds".format(avg_batch_time))
-            logger.info("Avg sample train. time: {} seconds".format(avg_sample_time))
+            # logger.info("Avg epoch train. time: {} hours, {} minutes, {} seconds".format(*utils.readable_time(avg_epoch_time)))
+            # logger.info("Avg batch train. time: {} seconds".format(avg_batch_time))
+            # logger.info("Avg sample train. time: {} seconds".format(avg_sample_time))
 
             # evaluate if first or last epoch or at specified interval
             if (epoch == config["epochs"]) or (epoch == start_epoch + 1) or (epoch % config['val_interval'] == 0):
@@ -433,6 +434,8 @@ def main(config):
         acc = np.zeros((num_vote, 1))
         for i in range(num_vote):
             acc[i] = confusion_matrix(target_labels, predict_labels, normalize='true')[i][i]
+            
+        print("Average accuracy: ", acc.mean())
 
         # # # test_indices = range(len(test_data.labels_df.values))
         # test_dataset = dataset_class(test_data, test_indices)

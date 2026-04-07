@@ -18,6 +18,8 @@ from torchvision.io import write_jpeg
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'functions')))
 from load_machine_config import load_machine_config
+from normalization import normalization
+from interpolate_multiD import interpolate_multiD
 
 config = load_machine_config()
 
@@ -39,31 +41,11 @@ idx = 10
 setups = {
     "phone_s22": {
         # "users": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
-        "users": ["ZeyuZoom"],
+        "users": ["Zeyu"],
+        # "users": ["ZeyuZoom"],
         "save_dir": "phone_s22/"
           }
 }
-
-plt.rcParams["savefig.bbox"] = "tight"
-# sphinx_gallery_thumbnail_number = 2
-
-
-def plot(imgs, **imshow_kwargs):
-    if not isinstance(imgs[0], list):
-        # Make a 2d grid even if there's just 1 row
-        imgs = [imgs]
-
-    num_rows = len(imgs)
-    num_cols = len(imgs[0])
-    _, axs = plt.subplots(nrows=num_rows, ncols=num_cols, squeeze=False)
-    for row_idx, row in enumerate(imgs):
-        for col_idx, img in enumerate(row):
-            ax = axs[row_idx, col_idx]
-            img = F.to_pil_image(img.to("cpu"))
-            ax.imshow(np.asarray(img), **imshow_kwargs)
-            ax.set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
-
-    plt.tight_layout()
 
 
 def preprocess(batch):
@@ -104,23 +86,11 @@ def flow_to_arrow(flow, target_grid=[2, 2], threshold=1.0):
     return x, y, u, v
 
 
-def arrow_on_image(image, x, y, u, v, color=(255, 0, 0), thickness=2):
-    image = image.copy()
-    scale = 5  # scale factor for better visualization
-    for (x_i, y_i, u_i, v_i) in zip(x, y, u, v):
-        end_point = (int(x_i + u_i * scale), int(y_i + v_i * scale))
-        cv2.arrowedLine(image, (x_i, y_i), end_point, color, thickness)
-    return image 
-
 
 proj_path = os.path.join(config["data_dir"], "Phone_Privacy")
 video_file = proj_path + "/data/" + setups["phone_s22"]["save_dir"] + votes[0] + "/downsample_480p/" + setups["phone_s22"]["users"][0] + "_" + votes[0] + "_" + str(idx) + "_downsample_480p.mp4"
-save_file = proj_path + "/data/" + setups["phone_s22"]["save_dir"] + votes[0] + "/downsample_480p/" + setups["phone_s22"]["users"][0] + "_" + votes[0] + "_" + str(idx) + "_optical_flow_arrow_480p.mp4"
 # save_file = proj_path + "/data/" + setups["phone_s22"]["save_dir"] + votes[0] + "/downsample_480p/" + setups["phone_s22"]["users"][0] + "_" + votes[0] +"_1_optical_flow_arrow_gaussian_480p.mp4"
 save_csv = proj_path + "/data/" + setups["phone_s22"]["save_dir"] + votes[0] + "/downsample_480p/" + setups["phone_s22"]["users"][0] + "_" + votes[0] + "_" + str(idx) + "_optical_flow_arrow_480p.csv"
-
-# save optical flow video
-vid = cv2.VideoWriter(save_file, cv2.VideoWriter_fourcc(*'mp4v'), 30, (480, 848))
 
 cap = cv2.VideoCapture(video_file)
 frame_count = 0
@@ -148,7 +118,7 @@ while True:
             frame_count += 1
             continue
         else:
-            last_frame = current_frame
+            # last_frame = current_frame
             current_frame = frame_tensor
             frame_count += 1
         
@@ -170,29 +140,15 @@ while True:
         flow_data = []
         for i in range(len(x)):
             flow_data.append(u[i])
+        for i in range(len(x)):
             flow_data.append(v[i])
+
         df_save = pd.concat([df_save, pd.DataFrame([flow_data], columns=[f"flow_{i}" for i in range(num_row)])])
 
     else:
         break
 
+flow_data_interp = interpolate_multiD(np.array(df_save, dtype=np.float64), target_length=80)
+flow_data_norm = normalization(flow_data_interp, method='zscore')
 # Save the dataframe into csv
-df_save.to_csv(save_csv, index=False, header=False)
-
-# Plot each arrow in a M*N subfig vs frame number, with x-axis as frame number and y-axis as flow value
-# Each subplot has u and v value of the same arrow, with different color and legend
-plt.figure(figsize=(20, 10))
-x_axis = list(range(1, len(df_save)+1))
-for i in range(M*N):
-    plt.subplot(M, N, i+1)
-    plt.plot(x_axis, df_save[f"flow_{i*2}"], label="x")
-    plt.plot(x_axis, df_save[f"flow_{i*2+1}"], label="y")
-    # Power average of x and y flow value for better visualization
-    flow_magnitude = np.sqrt(df_save[f"flow_{i*2}"]**2 + df_save[f"flow_{i*2+1}"]**2)
-    plt.plot(x_axis, flow_magnitude, label="magnitude", linestyle="--")
-    plt.legend()
-    plt.title(f"Flow {i}")
-    plt.xlabel("Frame number")
-    plt.ylabel("Flow value")    
-plt.tight_layout()
-plt.show()
+pd.DataFrame(flow_data_norm).to_csv(save_csv, index=False, header=False)

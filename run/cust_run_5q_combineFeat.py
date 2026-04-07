@@ -1,7 +1,5 @@
 import subprocess
-import pandas as pd
 import os
-from variables_combineFeat import vote_list, num_try
 import sys
 
 # Add parent directory of this file to sys.path
@@ -24,7 +22,7 @@ subprocess.run(["python", "run/main_5q_combineFeat.py",
                 "--data_class", "vrs",
                 "--val_ratio", "0.1",
                 # "--test_ratio", "0.4",
-                "--epochs", "40", # Too long all B, default 30; <40 for selection frames, 55 for full frames
+                "--epochs", "40", # Too long all B, default 40; <40 for selection frames, 55 for full frames
                 "--lr", "0.001", # Too high all B
                 "--dropout", "0.2",
                 "--batch_size", "8",

@@ -39,10 +39,5 @@ grid_dim = "22"
 # feature_names = ["opticalflow_" + grid_dim + "_downsample_480p_s22"]
 # feature_names = ["opticalflowRAFT_" + grid_dim + "_downsample_480p_s22"]
 # feature_names = ["all_processpos_norm_downsample_480p_s22"]
-feature_names = ["all_processpos_norm_downsample_480p_s22", "egomotion_rot_downsample_480p_s22"]
-
-# feature_names = ["all_norm_downsample_480p_s22"]
-# feature_names = ["all_processpos_nonorm_downsample_480p_s22"]
-# feature_names = ["all_noprocesspos_norm_downsample_480p_s22"]
-# feature_names = ["all_noprocesspos_nonorm_downsample_480p_s22"]
-# feature_names = ["all_nonorm_downsample_480p_s22"]
+# feature_names = ["egomotion_rot_downsample_480p_s22"]
+feature_names = ["all_processpos_norm_downsample_480p_s22", "opticalflow_" + grid_dim + "_downsample_480p_s22", "egomotion_rot_downsample_480p_s22"]
