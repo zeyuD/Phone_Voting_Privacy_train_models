@@ -120,6 +120,8 @@ class VRSkeleton(BaseData):
     def __init__(self, use, root_dir, file_list=None, pattern=None, n_proc=1, limit_size=None, config=None):
         self.use = use
         self.config = config
+        self.crop_start = 30
+        self.crop_end = 5
 
         data_dir = root_dir + '/'
 
@@ -141,6 +143,12 @@ class VRSkeleton(BaseData):
         classes = self.labels_df[0].astype("category")
         self.class_names = classes.cat.categories
 
+    def crop_time(self, df):
+        # by default, use all time steps, time_axis = 0:len(df)
+        time_axis = range(self.crop_start, len(df) - self.crop_end)
+        cropped_df = df.iloc[time_axis]
+        return cropped_df
+    
     def load_all(self, data_dir, file_list=None, pattern=None):
         # Read the same file from each feature's folder data_dir + feature_name + '/'
         # Concatenate the features as new columns in the dataframe
@@ -149,6 +157,7 @@ class VRSkeleton(BaseData):
         # Initialize data and labels
         for feature_name in feature_names:
             seg_data_f_1 = pd.read_csv(data_dir + feature_name + '/' + vote_list[0] + '/' + user_list[0] + '_' + vote_list[0] + '_1.csv', header=None)
+            seg_data_f_1 = self.crop_time(seg_data_f_1)
             seg_data_allFeat = pd.concat([seg_data_allFeat, seg_data_f_1], axis=1)
         num_dimensions = len(seg_data_allFeat.columns)
         self.max_seq_len = len(seg_data_allFeat)
@@ -176,8 +185,9 @@ class VRSkeleton(BaseData):
         for v in range(len(vote_list)):
             vote = vote_list[v]
             for user in user_list:
-                train_path_0 = data_dir + feature_names[0] + '/' + vote
-                files = [file for file in os.listdir(train_path_0) if user + "_" in file and not file.startswith('.')]
+                feature_name_0 = feature_names[0]
+                train_path = data_dir + feature_name_0 + '/' + vote
+                files = [file for file in os.listdir(train_path) if user + "_" in file and not file.startswith('.')]
                 for f in range(1, len(feature_names)):
                     feature_name = feature_names[f]
                     # Validate that the same name file exists in each feature folder
@@ -190,6 +200,7 @@ class VRSkeleton(BaseData):
                 for idx in data_idx:
                     file = files[idx]
                     seg_data_i = pd.read_csv(train_path + '/' + file, header=None)
+                    seg_data_i = self.crop_time(seg_data_i)
                     data_i = pd.DataFrame(dtype=np.float32, columns=header_list)
                     # Print if has NaN values
                     if seg_data_i.isna().any().any():
@@ -205,8 +216,9 @@ class VRSkeleton(BaseData):
             vote = vote_list[v]
             train_path = data_dir + vote
             for user in user_list:
-                train_path_0 = data_dir + feature_names[0] + '/' + vote
-                files = [file for file in os.listdir(train_path_0) if user + "_" in file and not file.startswith('.')]
+                feature_name_0 = feature_names[0]
+                train_path = data_dir + feature_name_0 + '/' + vote
+                files = [file for file in os.listdir(train_path) if user + "_" in file and not file.startswith('.')]
                 for f in range(1, len(feature_names)):
                     feature_name = feature_names[f]
                     # Validate that the same name file exists in each feature folder
@@ -220,6 +232,7 @@ class VRSkeleton(BaseData):
                     seg_data_allFeat = pd.DataFrame()
                     for feature_name in feature_names:
                         seg_data_i = pd.read_csv(data_dir + feature_name + '/' + vote + '/' + file, header=None)
+                        seg_data_i = self.crop_time(seg_data_i)
                         seg_data_allFeat = pd.concat([seg_data_allFeat, seg_data_i], axis=1)
                     # # if self.use == 'test':
                     # #     print("Test file:", file)

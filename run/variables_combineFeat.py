@@ -21,7 +21,7 @@ num_round = 100
 user_list = ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", 
              "Junwei", "minglei", "Minjie", "Mingxuan","Rosie", 
              "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", 
-            #  "Ziyue1"
+             "Ziyue1"
              ]
 # user_list = ["Chuan", "Gujing", "Haofan", "Junwei", "Yirui"]
 # user_list = ["Chuan"]
@@ -42,8 +42,10 @@ grid_dim = "22"
 # feature_names = ["all_processpos_norm_downsample_480p_s22"]
 # feature_names = ["egomotion_rot_downsample_480p_s22"]
 feature_names = [
+    # "all_processpos_norm_downsample_480p_s22",
+    "opticalflowRAFT_varyRef_" + grid_dim + "_downsample_480p_s22",
     "opticalflowRAFT_" + grid_dim + "_downsample_480p_s22",
-    "opticalflowRAFT_border_" + grid_dim + "_downsample_480p_s22",
-    "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_s22",
-    "opticalflowRAFT_obj_" + grid_dim + "_downsample_480p_s22"
+    # "opticalflowRAFT_border_" + grid_dim + "_downsample_480p_s22",
+    # "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_s22",
+    # "opticalflowRAFT_obj_" + grid_dim + "_downsample_480p_s22"
     ]
