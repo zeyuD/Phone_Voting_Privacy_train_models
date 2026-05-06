@@ -12,10 +12,14 @@ import pandas as pd
 from tqdm import tqdm
 
 # Add parent directory of this file to sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'mvts_transformer_M')))
-from datasets import utils
+# from datasets import utils
+from functions.detect_two_taps import detect_two_taps
+from functions.crop_time import crop_time
+from functions.interpolate_multiD import interpolate_multiD
 import random
-from variables_combineFeat import user_list, vote_list, feature_names
+from variables_combineFeat import user_list, vote_list, feature_names, interp_len
 
 logger = logging.getLogger('__main__')
 
@@ -120,8 +124,6 @@ class VRSkeleton(BaseData):
     def __init__(self, use, root_dir, file_list=None, pattern=None, n_proc=1, limit_size=None, config=None):
         self.use = use
         self.config = config
-        self.crop_start = 30
-        self.crop_end = 5
 
         data_dir = root_dir + '/'
 
@@ -142,12 +144,6 @@ class VRSkeleton(BaseData):
 
         classes = self.labels_df[0].astype("category")
         self.class_names = classes.cat.categories
-
-    def crop_time(self, df):
-        # by default, use all time steps, time_axis = 0:len(df)
-        time_axis = range(self.crop_start, len(df) - self.crop_end)
-        cropped_df = df.iloc[time_axis]
-        return cropped_df
     
     def load_all(self, data_dir, file_list=None, pattern=None):
         # Read the same file from each feature's folder data_dir + feature_name + '/'
@@ -157,8 +153,17 @@ class VRSkeleton(BaseData):
         # Initialize data and labels
         for feature_name in feature_names:
             seg_data_f_1 = pd.read_csv(data_dir + feature_name + '/' + vote_list[0] + '/' + user_list[0] + '_' + vote_list[0] + '_1.csv', header=None)
-            seg_data_f_1 = self.crop_time(seg_data_f_1)
-            seg_data_allFeat = pd.concat([seg_data_allFeat, seg_data_f_1], axis=1)
+            plot_data_1, centers_1 = detect_two_taps(seg_data_f_1)
+            crop_start_1 = centers_1[0]
+            crop_end_1 = len(seg_data_f_1) - centers_1[1]
+
+            data_to_use_1 = seg_data_f_1
+            # print("Original shape:", seg_data_f_1.shape)
+            data_to_use_1 = crop_time(data_to_use_1, crop_start_1, crop_end_1)
+            # print("Cropped shape:", seg_data_f_1.shape)
+            data_to_use_1 = interpolate_multiD(np.array(data_to_use_1, dtype=np.float64), interp_len)
+            data_to_use_1 = pd.DataFrame(data_to_use_1)
+            seg_data_allFeat = pd.concat([seg_data_allFeat, data_to_use_1], axis=1)
         num_dimensions = len(seg_data_allFeat.columns)
         self.max_seq_len = len(seg_data_allFeat)
         header_list = []
@@ -200,10 +205,22 @@ class VRSkeleton(BaseData):
                 for idx in data_idx:
                     file = files[idx]
                     seg_data_i = pd.read_csv(train_path + '/' + file, header=None)
-                    seg_data_i = self.crop_time(seg_data_i)
+                    plot_data_i, centers_i = detect_two_taps(seg_data_i)
+                    # if centers_i[0] == centers_i[1]:  # if only detects one tap, use the middle point as the second tap
+                    #     print("Vote " + vote + ", user " + user + ", file " + file + ": only detects one tap")
+                    # print("Centers detected at time steps:", centers_i)
+                    crop_start_i = centers_i[0]
+                    crop_end_i = len(seg_data_i) - centers_i[1]
+
+                    data_to_use_i = seg_data_i
+                    # print("Original shape:", seg_data_i.shape)
+                    data_to_use_i = crop_time(data_to_use_i, crop_start_i, crop_end_i)
+                    # print("Crop shape:", seg_data_i.shape)
+                    data_to_use_i = interpolate_multiD(np.array(data_to_use_i, dtype=np.float64), interp_len)
+                    data_to_use_i = pd.DataFrame(data_to_use_i)
                     data_i = pd.DataFrame(dtype=np.float32, columns=header_list)
                     # Print if has NaN values
-                    if seg_data_i.isna().any().any():
+                    if data_to_use_i.isna().any().any():
                         print("Warning: NaN values in file", file)
                         # Skip this instance
                         continue
@@ -232,8 +249,15 @@ class VRSkeleton(BaseData):
                     seg_data_allFeat = pd.DataFrame()
                     for feature_name in feature_names:
                         seg_data_i = pd.read_csv(data_dir + feature_name + '/' + vote + '/' + file, header=None)
-                        seg_data_i = self.crop_time(seg_data_i)
-                        seg_data_allFeat = pd.concat([seg_data_allFeat, seg_data_i], axis=1)
+                        plot_data_i, centers_i = detect_two_taps(seg_data_i)
+                        crop_start_i = centers_i[0]
+                        crop_end_i = len(seg_data_i) - centers_i[1]
+
+                        data_to_use_i = seg_data_i
+                        data_to_use_i = crop_time(data_to_use_i, crop_start_i, crop_end_i)
+                        data_to_use_i = interpolate_multiD(np.array(data_to_use_i, dtype=np.float64), interp_len)
+                        data_to_use_i = pd.DataFrame(data_to_use_i)
+                        seg_data_allFeat = pd.concat([seg_data_allFeat, data_to_use_i], axis=1)
                     # # if self.use == 'test':
                     # #     print("Test file:", file)
                     # if seg_data_i.shape[0] != 100:
