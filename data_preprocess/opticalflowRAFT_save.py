@@ -37,7 +37,8 @@ idx = 10
 setups = {
     "phone_s22": {
         # "users": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
-        "users": ["JingweiZoom", "mingleiZoom", "MinjieZoom", "WeiZoom", "WenZoom", "ZeyuZoom"],
+        # "users": ["JingweiZoom", "mingleiZoom", "MinjieZoom", "WeiZoom", "WenZoom", "ZeyuZoom"],
+        "users": ["ZeyuObj"],
         "device": "phone_s22/"
           }
 }

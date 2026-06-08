@@ -16,6 +16,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'mvts_transformer_M')))
 # from datasets_M import utils
 from functions.detect_two_taps import detect_two_taps
+from functions.band_pass_filter import band_pass_filter
 from functions.crop_time import crop_time
 from functions.interpolate_multiD import interpolate_multiD
 import random
@@ -356,6 +357,11 @@ class VRSkeleton(BaseData):
             valid_end = max(valid_start, min(valid_end, len(seg_data_i)))
 
             data_to_use_i = seg_data_i.copy()
+
+            # Apply band-pass filter if specified
+            if self.config is not None and "pass_band" in self.config and self.config["pass_band"] is not None:
+                low, high = self.config["pass_band"]
+                data_to_use_i = band_pass_filter(data_to_use_i, low=low, high=high, fs=30)
 
             # Instead of removing outside region, pad it
             data_to_use_i.iloc[:valid_start, :] = pad_value

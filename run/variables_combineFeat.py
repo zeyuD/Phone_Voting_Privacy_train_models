@@ -45,7 +45,7 @@ grid_dim = "22"
 # feature_names = ["egomotion_rot_downsample_480p_s22"]
 feature_names = [
     "all_processpos_norm_downsample_480p_s22",
-    "opticalflowRAFT_varyRef_" + grid_dim + "_downsample_480p_s22",
+    # "opticalflowRAFT_varyRef_" + grid_dim + "_downsample_480p_s22",
     # "opticalflowRAFT_" + grid_dim + "_downsample_480p_s22",
     # "opticalflowRAFT_border_" + grid_dim + "_downsample_480p_s22",
     # "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_s22",

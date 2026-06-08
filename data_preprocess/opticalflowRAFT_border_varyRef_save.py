@@ -47,9 +47,9 @@ setups = {
           }
 }
 suffix = "_downsample_480p_s22"
-prefix_border = "opticalflowRAFT_border_22"
-prefix_edge = "opticalflowRAFT_edge_22"
-prefix_obj = "opticalflowRAFT_obj_22"
+prefix_border = "opticalflowRAFT_border_varyRef_22"
+prefix_edge = "opticalflowRAFT_edge_varyRef_22"
+prefix_obj = "opticalflowRAFT_obj_varyRef_22"
 
 
 def preprocess(batch):
@@ -237,7 +237,7 @@ for file in video_files:
                 frame_count += 1
                 continue
             else:
-                # last_frame = current_frame
+                last_frame = current_frame
                 current_frame = frame_tensor
                 frame_count += 1
             

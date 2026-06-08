@@ -368,239 +368,57 @@ def main(config):
         # -----------------------------------------------------
         logger.info("Creating model ...")
 
-        model = model_factory(config, my_data)
-
-        if config['freeze']:
-            for name, param in model.named_parameters():
-                if name.startswith('output_layer'):
-                    param.requires_grad = True
-                else:
-                    param.requires_grad = False
-
-        logger.info("Model:\n{}".format(model))
-        logger.info("Total number of parameters: {}".format(utils.count_parameters(model)))
-        logger.info("Trainable parameters: {}".format(utils.count_parameters(model, trainable=True)))
-
-        # -----------------------------------------------------
-        # Optimizer
-        # -----------------------------------------------------
-        if config['global_reg']:
-            weight_decay = config['l2_reg']
-            output_reg = None
+        # model = model_factory(config, my_data)
+        # Load last model (.pth) for testing
+        model_para = torch.load(os.path.join(config['data_dir'], 'fusion_model.pth'))
+        print(type(model_para))
+        if isinstance(model_para, dict):
+            print("Top-level keys:")
+            print(model_para.keys())
+            # Common cases
+            if "state_dict" in model_para:
+                state_dict = model_para["state_dict"]
+            elif "model_state_dict" in model_para:
+                state_dict = model_para["model_state_dict"]
+            else:
+                state_dict = model_para
         else:
-            weight_decay = 0
-            output_reg = config['l2_reg']
+            # If the full model object was saved
+            print(model_para)
+            state_dict = model_para.state_dict()
+        print("\nLayers and parameter shapes:")
+        for name, tensor in state_dict.items():
+            if torch.is_tensor(tensor):
+                print(f"{name:60s} {tuple(tensor.shape)}")
 
-        optim_class = get_optimizer(config['optimizer'])
-        optimizer = optim_class(model.parameters(), lr=config['lr'], weight_decay=weight_decay)
+        # BRANCH = "opticalflowRAFT_edge_22_downsample_480p_s22"
+        BRANCH = "all_processpos_norm_downsample_480p_s22"
+        # Load parameters into model architecture
+        model = model_factory(config, my_data)
+        model_state = model.state_dict()
+        partial_state = {}
+        keep_prefixes = [
+            f"project_inp.{BRANCH}",
+            f"pos_enc.{BRANCH}",
+            f"temporal_encoders.{BRANCH}",
+            f"aux_output_layers.{BRANCH}",
+        ]
+        for k, v in state_dict.items():
+            if any(k.startswith(prefix) for prefix in keep_prefixes):
+                if k in model_state and model_state[k].shape == v.shape:
+                    partial_state[k] = v
+        model_state.update(partial_state)
+        missing, unexpected = model.load_state_dict(model_state, strict=False)
+        print("Loaded tensors:")
+        for k in partial_state:
+            print(k)
+        print("\nMissing keys:")
+        print(missing)
+        print("\nUnexpected keys:")
+        print(unexpected)
 
-        start_epoch = 0
-        lr_step = 0
-        lr = config['lr']
-
-        if args.load_model:
-            model, optimizer, start_epoch = utils.load_model(
-                model,
-                config['load_model'],
-                optimizer,
-                config['resume'],
-                config['change_output'],
-                config['lr'],
-                config['lr_step'],
-                config['lr_factor'],
-            )
-
+        # Trim the model to only 
         model.to(device)
-
-        loss_module = get_loss_module(config)
-
-        # -----------------------------------------------------
-        # Data generators
-        # -----------------------------------------------------
-        dataset_class, collate_fn, runner_class = pipeline_factory(config)
-
-        val_dataset = dataset_class(val_data, val_indices)
-
-        val_loader = DataLoader(
-            dataset=val_dataset,
-            batch_size=config['batch_size'],
-            shuffle=False,
-            num_workers=config['num_workers'],
-            pin_memory=True,
-            collate_fn=lambda x: collate_fn(x, max_len=model.max_len),
-        )
-
-        train_dataset = dataset_class(my_data, train_indices)
-
-        train_loader = DataLoader(
-            dataset=train_dataset,
-            batch_size=config['batch_size'],
-            shuffle=True,
-            num_workers=config['num_workers'],
-            pin_memory=True,
-            collate_fn=lambda x: collate_fn(x, max_len=model.max_len),
-        )
-
-        trainer = runner_class(
-            model,
-            train_loader,
-            device,
-            loss_module,
-            optimizer,
-            l2_reg=output_reg,
-            print_interval=config['print_interval'],
-            console=config['console'],
-        )
-
-        val_evaluator = runner_class(
-            model,
-            val_loader,
-            device,
-            loss_module,
-            print_interval=config['print_interval'],
-            console=config['console'],
-        )
-
-        tensorboard_writer = SummaryWriter(config['tensorboard_dir'])
-
-        best_value = 1e16 if config['key_metric'] in NEG_METRICS else -1e16
-        metrics = []
-        best_metrics = {}
-
-        # -----------------------------------------------------
-        # Validate before training
-        # -----------------------------------------------------
-        aggr_metrics_val, best_metrics, best_value = validate(
-            val_evaluator,
-            tensorboard_writer,
-            config,
-            best_metrics,
-            best_value,
-            epoch=0,
-        )
-
-        metrics_names, metrics_values = zip(*aggr_metrics_val.items())
-        metrics.append(list(metrics_values))
-
-        # -----------------------------------------------------
-        # Train
-        # -----------------------------------------------------
-        logger.info('Starting training...')
-
-        for epoch in tqdm(
-            range(start_epoch + 1, config["epochs"] + 1),
-            desc='Training Epoch',
-            leave=False,
-        ):
-            mark = epoch if config['save_all'] else 'last'
-
-            epoch_start_time = time.time()
-
-            aggr_metrics_train = trainer.train_epoch(epoch)
-
-            epoch_runtime = time.time() - epoch_start_time
-
-            print()
-            print_str = 'Epoch {} Training Summary: '.format(epoch)
-
-            for k, v in aggr_metrics_train.items():
-                tensorboard_writer.add_scalar('{}/train'.format(k), v, epoch)
-                print_str += '{}: {:8f} | '.format(k, v)
-
-            logger.info(print_str)
-            logger.info(
-                "Epoch runtime: {} hours, {} minutes, {} seconds\n".format(
-                    *utils.readable_time(epoch_runtime)
-                )
-            )
-
-            total_epoch_time += epoch_runtime
-
-            if (
-                epoch == config["epochs"]
-                or epoch == start_epoch + 1
-                or epoch % config['val_interval'] == 0
-            ):
-                aggr_metrics_val, best_metrics, best_value = validate(
-                    val_evaluator,
-                    tensorboard_writer,
-                    config,
-                    best_metrics,
-                    best_value,
-                    epoch,
-                )
-
-                metrics_names, metrics_values = zip(*aggr_metrics_val.items())
-                metrics.append(list(metrics_values))
-
-            utils.save_model(
-                os.path.join(config['data_dir'], 'model_last.pth'),
-                epoch,
-                model,
-            )
-
-            if epoch == config['lr_step'][lr_step]:
-                utils.save_model(
-                    os.path.join(config['data_dir'], 'model_last.pth'),
-                    epoch,
-                    model,
-                )
-
-                lr = lr * config['lr_factor'][lr_step]
-
-                if lr_step < len(config['lr_step']) - 1:
-                    lr_step += 1
-
-                logger.info('Learning rate updated to: {}'.format(lr))
-
-                for param_group in optimizer.param_groups:
-                    param_group['lr'] = lr
-
-            if config['harden'] and check_progress(epoch):
-                train_loader.dataset.update()
-                val_loader.dataset.update()
-
-        # -----------------------------------------------------
-        # Export metrics
-        # -----------------------------------------------------
-        header = metrics_names
-
-        metrics_filepath = os.path.join(
-            config["output_dir"],
-            "metrics_" + config["experiment_name"] + ".xls",
-        )
-
-        book = utils.export_performance_metrics(
-            metrics_filepath,
-            metrics,
-            header,
-            sheet_name="metrics",
-        )
-
-        utils.register_record(
-            config["records_file"],
-            config["initial_timestamp"],
-            config["experiment_name"],
-            best_metrics,
-            aggr_metrics_val,
-            comment=config['comment'],
-        )
-
-        logger.info('Best {} was {}. Other metrics: {}'.format(
-            config['key_metric'],
-            best_value,
-            best_metrics,
-        ))
-
-        logger.info('All Done!')
-
-        total_runtime = time.time() - total_start_time
-
-        logger.info(
-            "Total runtime: {} hours, {} minutes, {} seconds\n".format(
-                *utils.readable_time(total_runtime)
-            )
-        )
 
         # -----------------------------------------------------
         # Manual full test inference
@@ -758,8 +576,6 @@ def main(config):
 
     df7 = pd.read_csv("train_pred_labels.csv")
     df7.to_csv("results/train_pred_labels_" + str(num_vote) + "q_fuseFeat.csv", index=False)
-
-    return best_value
 
 
 if __name__ == '__main__':

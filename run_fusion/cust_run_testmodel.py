@@ -12,7 +12,7 @@ device = config["compdev"]
 grid_dim = "22"
 
 # print("User: ", user)
-subprocess.run(["python", "run_fusion/main_5q_fuseFeat.py",
+subprocess.run(["python", "run_fusion/test_model.py",
                 "--output_dir", "experiments",
                 "--comment", "classification from Scratch",
                 "--name", "VRS_fromScratch",

@@ -12,7 +12,10 @@ compdev = config["compdev"]
 
 # Our own dataset
 # vote_list = ["A", "C"]
+# vote_list = ["A", "B"]
+# vote_list = ["A", "C", "E"]
 # vote_list = ["A", "B", "C"]
+# vote_list = ["A", "B", "C", "D"]
 vote_list = ["A", "B", "C", "D", "E"]
 
 num_try = 10
@@ -45,9 +48,12 @@ grid_dim = "22"
 # feature_names = ["egomotion_rot_downsample_480p_s22"]
 feature_names = [
     "all_processpos_norm_downsample_480p_s22",
-    "opticalflowRAFT_varyRef_" + grid_dim + "_downsample_480p_s22",
+    # "opticalflowRAFT_varyRef_" + grid_dim + "_downsample_480p_s22",
     # "opticalflowRAFT_" + grid_dim + "_downsample_480p_s22",
     # "opticalflowRAFT_border_" + grid_dim + "_downsample_480p_s22",
-    # "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_s22",
+    # "opticalflowRAFT_border_varyRef_" + grid_dim + "_downsample_480p_s22",
+    "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_s22", # Best after fuse with eyeFeat?
+    # "opticalflowRAFT_edge_varyRef_" + grid_dim + "_downsample_480p_s22",
     # "opticalflowRAFT_obj_" + grid_dim + "_downsample_480p_s22"
+    # "opticalflowRAFT_obj_varyRef_" + grid_dim + "_downsample_480p_s22"
     ]

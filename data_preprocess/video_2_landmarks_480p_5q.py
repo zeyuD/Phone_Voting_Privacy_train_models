@@ -26,7 +26,8 @@ votes = ["A", "B", "C", "D", "E"]
 setups = {
     "phone_s22": {
         # "users": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
-        "users": ["JingweiZoom", "mingleiZoom", "MinjieZoom", "WeiZoom", "WenZoom"], # "ZeyuZoom"
+        # "users": ["JingweiZoom", "mingleiZoom", "MinjieZoom", "WeiZoom", "WenZoom"], # "ZeyuZoom"
+        "users": ["ZeyuObj"],
         "save_dir": "phone_s22/"
           }
 }
