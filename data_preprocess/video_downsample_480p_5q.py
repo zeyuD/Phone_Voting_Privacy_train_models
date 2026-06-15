@@ -21,7 +21,7 @@ votes = ["A", "B", "C", "D", "E"]
 # Create a dictionary of setups, each will have different setup and users
 setups = {
     # "phone_s22": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
-    "phone_s22": ["ZeyuObj"],
+    "phone_s22": ["JingweiObj", "ZeyuObj"],
           }
 
 # Loop through the variables and construct the video path for each combination
@@ -57,6 +57,8 @@ for setup in setups:
                 frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
                 fps = cap.get(cv2.CAP_PROP_FPS)
 
+                # print(f"Original video resolution: {frame_width}x{frame_height}, FPS: {fps}")
+
                 # Set the new resolution
                 new_width, new_height = 480, 848
 
@@ -68,6 +70,11 @@ for setup in setups:
                     ret, frame = cap.read()
                     if not ret:
                         break  # Exit loop if no frames are left
+
+                    # Read host name, rotate the frame by 90 degrees anticlockwise on Ubuntu 3660
+                    hostname = os.uname().nodename
+                    if hostname == "mistlab-Precision-3660":
+                        frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
                     # Resize the frame to the new resolution
                     resized_frame = cv2.resize(frame, (new_width, new_height))

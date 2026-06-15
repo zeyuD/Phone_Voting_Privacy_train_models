@@ -27,7 +27,7 @@ setups = {
     "phone_s22": {
         # "users": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
         # "users": ["JingweiZoom", "mingleiZoom", "MinjieZoom", "WeiZoom", "WenZoom"], # "ZeyuZoom"
-        "users": ["ZeyuObj"],
+        "users": ["JingweiObj", "ZeyuObj"],
         "save_dir": "phone_s22/"
           }
 }
@@ -127,10 +127,17 @@ for setup, details in setups.items():
                         
                     while cap.isOpened():
                         success, image = cap.read()
+
                         if not success:
                             print("Video frames finished.")
                             # If loading a video, use 'break' instead of 'continue'.
                             break
+
+                        # # Show a frame and its shape
+                        # import numpy as np
+                        # print("Frame shape:", np.shape(image))
+                        # cv2.imshow("Frame", image)
+                        # cv2.waitKey(0)
 
                         #! Get from raw data
                         frame_timestamp_ms = time.time()
