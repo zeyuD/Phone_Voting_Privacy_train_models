@@ -20,14 +20,14 @@ num_round = 100
 crop_overlap = 5
 interp_len = 50
 
-user_list = ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", 
-             "Junwei", "minglei", "Minjie", "Mingxuan","Rosie", 
-             "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", 
-             "Ziyue1"
-             ]
+# user_list = ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", 
+#              "Junwei", "minglei", "Minjie", "Mingxuan","Rosie", 
+#              "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", 
+#              "Ziyue1"
+#              ]
 # user_list = ["Chuan", "Gujing", "Haofan", "Junwei", "Yirui"]
 # user_list = ["Chuan"]
-# user_list = ["ZeyuZoom"]
+user_list = ["ZeyuObj"]
 
 # user_list = ["Jingwei", "minglei", "Minjie", "Wen", "Zeyu"]
 # user_othersetting_list = ["Jingwei", "minglei", "Minjie", "Wen", "Zeyu"]

@@ -23,14 +23,14 @@ num_round = 100
 crop_overlap = 5
 interp_len = 50
 
-user_list = ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", 
-             "Junwei", "minglei", "Minjie", "Mingxuan","Rosie", 
-             "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", 
-             "Ziyue1"
-             ]
+# user_list = ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", 
+#              "Junwei", "minglei", "Minjie", "Mingxuan","Rosie", 
+#              "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", 
+#              "Ziyue1"
+#              ]
 # user_list = ["Chuan", "Gujing", "Haofan", "Junwei", "Yirui"]
 # user_list = ["Chuan"]
-# user_list = ["ZeyuZoom"]
+user_list = ["ZeyuObj"]
 
 # user_list = ["Jingwei", "minglei", "Minjie", "Wen", "Zeyu"]
 # user_othersetting_list = ["Jingwei", "minglei", "Minjie", "Wen", "Zeyu"]
@@ -47,13 +47,14 @@ grid_dim = "22"
 # feature_names = ["all_processpos_norm_downsample_480p_s22"]
 # feature_names = ["egomotion_rot_downsample_480p_s22"]
 feature_names = [
-    "all_processpos_norm_downsample_480p_s22",
+    # "all_processpos_norm_downsample_480p_s22",
     # "opticalflowRAFT_varyRef_" + grid_dim + "_downsample_480p_s22",
     # "opticalflowRAFT_" + grid_dim + "_downsample_480p_s22",
     # "opticalflowRAFT_border_" + grid_dim + "_downsample_480p_s22",
     # "opticalflowRAFT_border_varyRef_" + grid_dim + "_downsample_480p_s22",
-    "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_s22", # Best after fuse with eyeFeat?
+    # "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_s22", # Best after fuse with eyeFeat?
+    # "objYOLO_downsample_480p_s22",
     # "opticalflowRAFT_edge_varyRef_" + grid_dim + "_downsample_480p_s22",
-    # "opticalflowRAFT_obj_" + grid_dim + "_downsample_480p_s22"
+    "opticalflowRAFT_obj_" + grid_dim + "_downsample_480p_s22"
     # "opticalflowRAFT_obj_varyRef_" + grid_dim + "_downsample_480p_s22"
     ]
