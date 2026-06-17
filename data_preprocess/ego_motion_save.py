@@ -21,8 +21,8 @@ votes = ["A", "B", "C", "D", "E"]
 # Create a dictionary of setups, each will have different setup and users
 setups = {
     "phone_s22": {
-        "users": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
-        # "users": ["ZeyuZoom"],
+        # "users": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
+        "users": ["JingweiObj", "ZeyuObj"],
         "device": "phone_s22/"
           }
 }
