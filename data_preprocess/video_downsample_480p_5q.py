@@ -21,11 +21,17 @@ votes = ["A", "B", "C", "D", "E"]
 # Create a dictionary of setups, each will have different setup and users
 setups = {
     # "phone_s22": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
-    "phone_s22": ["JingweiObj", "ZeyuObj"],
+    # "phone_s22": ["JingweiObj", "ZeyuObj"],
+    "pad_op2": ["JingweiPad", "ZeyuPad"],
           }
 
 # Loop through the variables and construct the video path for each combination
 for setup in setups:
+    if setup == "phone_s22":
+        # Set the new resolution
+        new_width, new_height = 480, 848
+    elif setup == "pad_op2":
+        new_width, new_height = 848, 480
     users = setups[setup]
     print("Running setup: ", setup)
     print("Users: ", users)

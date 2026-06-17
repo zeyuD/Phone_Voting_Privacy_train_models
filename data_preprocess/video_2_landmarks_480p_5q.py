@@ -24,11 +24,15 @@ votes = ["A", "B", "C", "D", "E"]
 
 # Create a dictionary of setups, each will have different setup and users
 setups = {
-    "phone_s22": {
-        # "users": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
-        # "users": ["JingweiZoom", "mingleiZoom", "MinjieZoom", "WeiZoom", "WenZoom"], # "ZeyuZoom"
-        "users": ["JingweiObj", "ZeyuObj"],
-        "save_dir": "phone_s22/"
+    # "phone_s22": {
+    #     # "users": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
+    #     # "users": ["JingweiZoom", "mingleiZoom", "MinjieZoom", "WeiZoom", "WenZoom"], # "ZeyuZoom"
+    #     "users": ["JingweiObj", "ZeyuObj"],
+    #     "save_dir": "phone_s22/"
+    #       },
+    "pad_op2": {
+        "users": ["JingweiPad", "ZeyuPad"],
+        "save_dir": "pad_op2/"
           }
 }
 
