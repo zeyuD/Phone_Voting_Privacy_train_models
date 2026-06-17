@@ -42,7 +42,7 @@ setups = {
     #       },
     "pad_op2": {
         "users": ["JingweiPad", "ZeyuPad"],
-        "save_dir": "pad_op2/"
+        "device": "pad_op2/"
           }
 }
 suffix = "_downsample_480p_s22"
@@ -52,12 +52,12 @@ prefix_edge = "opticalflowRAFT_edge_22"
 prefix_obj = "opticalflowRAFT_obj_22"
 
 
-def preprocess(batch):
+def preprocess(batch, height, width):
     transforms = T.Compose(
         [
             T.ConvertImageDtype(torch.float32),
             T.Normalize(mean=0.5, std=0.5),  # map [0, 1] into [-1, 1]
-            T.Resize(size=(848, 480)),
+            T.Resize(size=(height, width)),
         ]
     )
     batch = transforms(batch)
@@ -215,6 +215,8 @@ for file in video_files:
 
     # try:
     cap = cv2.VideoCapture(file)
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_count = 0
     last_frame = None
     current_frame = None
@@ -253,8 +255,8 @@ for file in video_files:
             # plot(last_batch)
             # plt.show()
 
-            last_batch = preprocess(last_batch).to(compdev)
-            current_batch = preprocess(current_batch).to(compdev)
+            last_batch = preprocess(last_batch, height, width).to(compdev)
+            current_batch = preprocess(current_batch, height, width).to(compdev)
             predicted_flow = model(last_batch, current_batch)
             # Get the flow from the last iteration of the model
             final_predicted_flow = predicted_flow[-1]

@@ -19,7 +19,7 @@ subprocess.run(["python", "run_fusion/main_5q_fuseFeat.py",
                 "--records_file", "VRS_records.xls",
                 "--data_dir", config["data_dir"] + "Phone_Privacy/input_feature/",
                 "--device", config["compdev"],
-                "--no_crop_features", "all_processpos_norm_downsample_480p_s22",
+                "--no_crop_features", "all_processpos_norm_downsample_480p_s22", "all_processpos_norm_downsample_480p_op2",
                 "--fusion_type", "same_time", # 'same_time', 'late', 'all_time', "feature", "both"
                 "--use_loss_fusion", "True",
                 "--pass_band", "6", "10",
