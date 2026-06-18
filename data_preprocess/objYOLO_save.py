@@ -45,7 +45,8 @@ setups = {
         "device": "pad_op2/"
           }
 }
-suffix = "_downsample_480p_s22"
+# suffix = "_downsample_480p_s22"
+suffix = "_downsample_480p_op2"
 prefix = "objYOLO"
 
 def preprocess(batch):
