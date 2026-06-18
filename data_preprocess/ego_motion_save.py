@@ -20,10 +20,14 @@ votes = ["A", "B", "C", "D", "E"]
 
 # Create a dictionary of setups, each will have different setup and users
 setups = {
-    "phone_s22": {
-        # "users": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
-        "users": ["JingweiObj", "ZeyuObj"],
-        "device": "phone_s22/"
+    # "phone_s22": {
+    #     # "users": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
+    #     "users": ["JingweiObj", "ZeyuObj"],
+    #     "device": "phone_s22/"
+    #       },
+    "pad_op2": {
+        "users": ["JingweiPad", "ZeyuPad"],
+        "device": "pad_op2/"
           }
 }
 suffix = "_downsample_480p_s22"
