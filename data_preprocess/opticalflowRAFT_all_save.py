@@ -45,7 +45,8 @@ setups = {
         "device": "pad_op2/"
           }
 }
-suffix = "_downsample_480p_s22"
+# suffix = "_downsample_480p_s22"
+suffix = "_downsample_480p_op2"
 prefix = "opticalflowRAFT_22"
 prefix_border = "opticalflowRAFT_border_22"
 prefix_edge = "opticalflowRAFT_edge_22"

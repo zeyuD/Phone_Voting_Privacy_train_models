@@ -50,13 +50,13 @@ grid_dim = "22"
 # feature_names = ["egomotion_rot_downsample_480p_s22"]
 feature_names = [
     # "all_processpos_norm_downsample_480p_s22",
-    "all_processpos_norm_downsample_480p_op2",
+    # "all_processpos_norm_downsample_480p_op2",
     # "opticalflowRAFT_varyRef_" + grid_dim + "_downsample_480p_s22",
     # "opticalflowRAFT_" + grid_dim + "_downsample_480p_s22",
     # "opticalflowRAFT_border_" + grid_dim + "_downsample_480p_s22",
     # "egomotion_rot_downsample_480p_s22",
     # "opticalflowRAFT_border_varyRef_" + grid_dim + "_downsample_480p_s22",
-    # "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_s22", # Best after fuse with eyeFeat?
+    "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_s22", # Best after fuse with eyeFeat?
     # "objYOLO_downsample_480p_s22",
     # "opticalflowRAFT_edge_varyRef_" + grid_dim + "_downsample_480p_s22",
     # "opticalflowRAFT_obj_" + grid_dim + "_downsample_480p_s22"
