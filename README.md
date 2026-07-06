@@ -27,6 +27,11 @@ This repo is about the phone voting privacy project.
 
 ### Environment pre-requests
 
+Download the submodule contents
+```
+git submodule update --init --recursive
+```
+
 Install mvts Transfomer package
 ```bash
 pip install -r mvts_transformer_M/failsafe_requirements.txt
