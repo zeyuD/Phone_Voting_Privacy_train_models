@@ -1,3 +1,9 @@
 [submodule "mvts_transformer_M"]
 	path = mvts_transformer_M
 	url = git@github.com:zeyuD/mvts_transformer_M.git
+[submodule "Extract_Eye_Rotation"]
+	path = Extract_Eye_Rotation
+	url = git@github.com:zeyuD/Extract_Eye_Rotation.git
+[submodule "extract_eye_rotation"]
+	path = extract_eye_rotation
+	url = git@github.com:zeyuD/extract_eye_rotation.git

@@ -19,6 +19,7 @@ This repo is about the phone voting privacy project.
 
 ## To Be Implemented
 - Additional sensing modality.
+- Additional voting devices and layouts
 
 
 ## Tips 
@@ -28,7 +29,7 @@ This repo is about the phone voting privacy project.
 
 Install mvts Transfomer package
 ```bash
-pip install -r failsafe_requirements.txt
+pip install -r mvts_transformer_M/failsafe_requirements.txt
 ```
 
 Create an experiments folder
@@ -37,16 +38,16 @@ mkdir experiments
 ```
 
 
-### Pull videos from experiment Android phone
+### Pull videos from experiment Android device
 
 Data saved directory
 ```bash
-cd /sdcard/Android/data/com.example.phone_vote/files/data/test/
+cd /sdcard/Android/data/com.example.phone_vote/files/data/username/
 ```
 
 Pull data from phone
 ```bash
-adb pull /sdcard/Android/data/com.example.phone_vote/files/data/test/ "D:\OneDrive - Southern Methodist University\Phone_Privacy\data\phone_s22"
+adb pull /sdcard/Android/data/com.example.phone_vote/files/data/username/ "D:\OneDrive - Southern Methodist University\Phone_Privacy\data\phone_s22"
 ```
 
 
@@ -65,7 +66,12 @@ python data_preprocess/video_2_landmarks_480p_5q.py
 
 Extract eye rotation from the downsampled videos
 ```bash
-python run_subprocess_phone.py
+python extract_eye_rotation/run_subprocess_phone_480p.py
+```
+
+Extract eye feature from landmarks
+```
+# To be added MATLAB scripts
 ```
 
 
