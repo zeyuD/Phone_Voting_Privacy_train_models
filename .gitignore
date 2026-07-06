@@ -29,5 +29,8 @@ mvts_transformer/src/datasets/__pycache__/
 mvts_transformer/src/model/__pycache__/
 mvts_transformer/src/utils/__pycache__/
 
+# Unused submodules
+mvts_transformer
+
 # Mac file system files
 .DS_Store
