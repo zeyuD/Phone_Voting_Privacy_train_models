@@ -4,6 +4,7 @@
 *.mp4
 
 # Local configuration files
+.vscode/
 archived/
 config/machine_config.json
 functions/load_machine_config.py
@@ -22,7 +23,7 @@ mvts_transformer/*.xls
 
 # Python cache
 __pycache__/
-run/__pycache__/
+run_old/__pycache__/
 functions/__pycache__/
 mvts_transformer/src/__pycache__/
 mvts_transformer/src/datasets/__pycache__/
