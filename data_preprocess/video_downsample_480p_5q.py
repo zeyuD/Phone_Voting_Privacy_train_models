@@ -22,12 +22,14 @@ votes = ["A", "B", "C", "D", "E"]
 setups = {
     # "phone_s22": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
     # "phone_s22": ["JingweiObj", "ZeyuObj"],
-    "pad_op2": ["JingweiPad", "ZeyuPad"],
-          }
+    # "pad_op2": ["JingweiPad", "ZeyuPad"],
+    "phonesr_s22": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
+    "phonedown_s22": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
+    }
 
 # Loop through the variables and construct the video path for each combination
 for setup in setups:
-    if setup == "phone_s22":
+    if setup == "phone_s22" or setup == "phonesr_s22" or setup == "phonedown_s22":
         # Set the new resolution
         new_width, new_height = 480, 848
     elif setup == "pad_op2":

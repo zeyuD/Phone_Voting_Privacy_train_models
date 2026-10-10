@@ -20,15 +20,18 @@ subprocess.run(["python", "run_fusion/main_5q_fuseFeat.py",
                 "--data_dir", config["data_dir"] + "Phone_Privacy/input_feature/",
                 "--device", config["compdev"],
                 "--no_crop_features", "all_processpos_norm_downsample_480p_s22", "all_processpos_norm_downsample_480p_op2",
+                      "all_processpos_norm_downsample_480p_downs22", "all_processpos_norm_downsample_480p_srs22",
                 "--fusion_type", "same_time", # 'same_time', 'late', 'all_time', "feature", "both"
                 "--use_loss_fusion", "True",
-                "--pass_band", "6", "10",
+                "--pass_band", "1", "10", # 1-10 for optiflowRAFT edge
                 "--lambda_aux", "0.1",
+                "--wandb_project", "phone_vote", # uncomment to log training to Weights & Biases
                 "--data_class", "vrs",
                 "--val_ratio", "0.1",
                 # "--test_ratio", "0.4",
                 "--epochs", "100", # Too long all B, default 40; <40 for selection frames, 55 for full frames
-                "--lr", "0.0005", # Too high all B
+                "--lr", "0.0005", # 0.0005
+                # "--lr_scheduler", "cosine", "--warmup_epochs", "5", # "step" (default), "cosine", "plateau"
                 "--dropout", "0.2",
                 "--batch_size", "8",
                 "--d_model", "16",

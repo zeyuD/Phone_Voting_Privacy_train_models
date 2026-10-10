@@ -30,10 +30,18 @@ setups = {
     #     "users": ["JingweiObj", "ZeyuObj"],
     #     "save_dir": "phone_s22/"
     #       },
-    "pad_op2": {
-        "users": ["JingweiPad", "ZeyuPad"],
-        "save_dir": "pad_op2/"
-          }
+    # "pad_op2": {
+    #     "users": ["JingweiPad", "ZeyuPad"],
+    #     "save_dir": "pad_op2/"
+    #       },
+    "phonesr_s22": {
+        "users": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
+        "save_dir": "phonesr_s22/"
+        },
+    "phonedown_s22": {
+        "users": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
+        "save_dir": "phonedown_s22/"
+        }
 }
 
 for setup, details in setups.items():

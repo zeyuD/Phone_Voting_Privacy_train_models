@@ -5,6 +5,7 @@
 
 # Local configuration files
 .vscode/
+wandb/
 archived/
 config/machine_config.json
 functions/load_machine_config.py
@@ -35,3 +36,6 @@ mvts_transformer
 
 # Mac file system files
 .DS_Store
+
+# Weights & Biases run logs
+wandb/

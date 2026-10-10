@@ -28,29 +28,41 @@ model = model.eval()
 
 
 votes = ["A", "B", "C", "D", "E"]
-M = 2
-N = 2
+M = 30
+N = 40
 
 idx = 10
 
 # Create a dictionary of setups, each will have different setup and users
 setups = {
-    # "phone_s22": {
-    #     # "users": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
-    #     "users": ["JingweiObj", "ZeyuObj"],
-    #     "device": "phone_s22/"
-    #       },
-    "pad_op2": {
-        "users": ["JingweiPad", "ZeyuPad"],
-        "device": "pad_op2/"
-          }
+    "phone_s22": {
+        "users": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
+        # "users": ["JingweiObj", "ZeyuObj"],
+        "device": "phone_s22/"
+          },
+    # "pad_op2": {
+    #     "users": ["JingweiPad", "ZeyuPad"],
+    #     "device": "pad_op2/"
+    #      },
+    # "phonesr_s22": {
+    #     "users": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
+    #     "device": "phonesr_s22/",
+    # "phonedown_s22": {
+    #     "users": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
+    #     "device": "phonedown_s22/"
+    #       }
 }
-# suffix = "_downsample_480p_s22"
-suffix = "_downsample_480p_op2"
-prefix = "opticalflowRAFT_22"
-prefix_border = "opticalflowRAFT_border_22"
-prefix_edge = "opticalflowRAFT_edge_22"
-prefix_obj = "opticalflowRAFT_obj_22"
+suffix = "_downsample_480p_s22"
+# suffix = "_downsample_480p_op2"
+# suffix = "_downsample_480p_srs22"
+# suffix = "_downsample_480p_downs22"
+grid_tag = f"{M}{N}"
+prefix = "opticalflowRAFT_" + grid_tag
+prefix_border = "opticalflowRAFT_border_" + grid_tag
+prefix_edge = "opticalflowRAFT_edge_" + grid_tag
+prefix_obj = "opticalflowRAFT_obj_" + grid_tag
+
+yolo_model = YOLO("yolo26m.pt")
 
 
 def preprocess(batch, height, width):
@@ -75,93 +87,75 @@ def flow_to_arrow(flow, target_grid=[2, 2], threshold=1.0):
     x, y, u, v = [], [], [], []
     # Average the flow in each target_grid size
     # E.g., [2, 2] means average flow into 2 row and 2 column blocks
-    step_h = h // target_grid[0]
-    step_w = w // target_grid[1]
-    for i in range(0, h, step_h):
-        for j in range(0, w, step_w):
-            block_u = flow_u[i:i+step_h, j:j+step_w]
-            block_v = flow_v[i:i+step_h, j:j+step_w]
+    # Block edges are spread over the whole frame, so there are always exactly
+    # target_grid[0] * target_grid[1] blocks, also when h or w is not a multiple of the grid
+    for m in range(target_grid[0]):
+        for n in range(target_grid[1]):
+            i0, i1 = m * h // target_grid[0], (m + 1) * h // target_grid[0]
+            j0, j1 = n * w // target_grid[1], (n + 1) * w // target_grid[1]
+            block_u = flow_u[i0:i1, j0:j1]
+            block_v = flow_v[i0:i1, j0:j1]
             avg_u = np.mean(block_u)
             avg_v = np.mean(block_v)
             # if np.sqrt(avg_u**2 + avg_v**2) > threshold:
-            x.append(j + step_w // 2)
-            y.append(i + step_h // 2)
+            x.append((j0 + j1) // 2)
+            y.append((i0 + i1) // 2)
             u.append(avg_u)
             v.append(avg_v)
     return x, y, u, v
 
 
-def flow_to_arrow_border(flow):
-    # only use the frame line pixels to calculate the average flow
+def masked_grid_flow(flow, mask, target_grid=[2, 2]):
+    # Average the flow over the masked pixels of each block of the target grid
+    # Blocks are ordered row by row, same as flow_to_arrow
+    # A block without any masked pixel gets 0 flow
     flow = flow.cpu().detach()
     flow_u = flow[0, 0].numpy()  # horizontal flow
     flow_v = flow[0, 1].numpy()  # vertical flow
     h, w = flow.shape[2], flow.shape[3]
-
-    outline_u = []
-    outline_v = []
-
-    # top row
-    outline_u.append(flow_u[0, :])
-    outline_v.append(flow_v[0, :])
-
-    # bottom row
-    outline_u.append(flow_u[-1, :])
-    outline_v.append(flow_v[-1, :])
-
-    # left and right columns, excluding corners to avoid double counting
-    if h > 2:
-        outline_u.append(flow_u[1:-1, 0])
-        outline_v.append(flow_v[1:-1, 0])
-
-        outline_u.append(flow_u[1:-1, -1])
-        outline_v.append(flow_v[1:-1, -1])
-
-    outline_u = np.concatenate([arr.ravel() for arr in outline_u])
-    outline_v = np.concatenate([arr.ravel() for arr in outline_v])
-
-    avg_u = np.mean(outline_u)
-    avg_v = np.mean(outline_v)
-
-    return avg_u, avg_v
+    u, v = [], []
+    for m in range(target_grid[0]):
+        for n in range(target_grid[1]):
+            rows = slice(m * h // target_grid[0], (m + 1) * h // target_grid[0])
+            cols = slice(n * w // target_grid[1], (n + 1) * w // target_grid[1])
+            block_mask = mask[rows, cols]
+            if block_mask.any():
+                u.append(np.mean(flow_u[rows, cols][block_mask]))
+                v.append(np.mean(flow_v[rows, cols][block_mask]))
+            else:
+                u.append(0.0)
+                v.append(0.0)
+    return u, v
 
 
-def flow_to_arrow_edge(frame, flow):
-    # Use Canny edge detection to find edges in the flow magnitude, then average flow on those edges
-    flow = flow.cpu().detach()
-    flow_u = flow[0, 0].numpy()  # horizontal flow
-    flow_v = flow[0, 1].numpy()  # vertical flow
+def flow_to_arrow_border(flow, target_grid=[2, 2]):
+    # only use the frame line pixels to calculate the average flow of each block
+    h, w = flow.shape[2], flow.shape[3]
+    mask = np.zeros((h, w), dtype=bool)
+    mask[0, :] = True
+    mask[-1, :] = True
+    mask[:, 0] = True
+    mask[:, -1] = True
+    return masked_grid_flow(flow, mask, target_grid)
+
+
+def flow_to_arrow_edge(frame, flow, target_grid=[2, 2]):
+    # Use Canny edge detection to find edges in the frame, then average flow on those edges in each block
     edges = cv2.Canny(frame, 100, 200)
-    edge_u = flow_u[edges > 0]
-    edge_v = flow_v[edges > 0]
-    avg_u = np.mean(edge_u)
-    avg_v = np.mean(edge_v)
-    return avg_u, avg_v
+    return masked_grid_flow(flow, edges > 0, target_grid)
 
 
-def flow_to_arrow_YOLO(frame, flow):
-    # Use a pre-trained YOLO model to detect objects in the frame, then average flow on those objects
-    model = YOLO("yolo26m.pt")
-    results = model(frame, verbose=False)
-    flow = flow.cpu().detach()
-    flow_u = flow[0, 0].numpy()  # horizontal flow
-    flow_v = flow[0, 1].numpy()  # vertical flow
-    # Here you would run YOLO detection on the frame and get bounding boxes for detected objects
-    avg_u = []
-    avg_v = []
+def flow_to_arrow_YOLO(frame, flow, target_grid=[2, 2]):
+    # Use a pre-trained YOLO model to detect objects in the frame, then average flow inside their boxes in each block
+    results = yolo_model(frame, verbose=False)
+    h, w = flow.shape[2], flow.shape[3]
+    mask = np.zeros((h, w), dtype=bool)
     for result in results:
         boxes = result.boxes.xyxy.cpu().numpy()  # Get bounding boxes
         for box in boxes:
             x1, y1, x2, y2 = box.astype(int)
-            object_u = flow_u[y1:y2, x1:x2]
-            object_v = flow_v[y1:y2, x1:x2]
-            avg_u_b = np.mean(object_u)
-            avg_v_b = np.mean(object_v)
-            avg_u.append(avg_u_b)
-            avg_v.append(avg_v_b)
-    avg_u = np.mean(avg_u)
-    avg_v = np.mean(avg_v)
-    return avg_u, avg_v
+            mask[y1:y2, x1:x2] = True
+    return masked_grid_flow(flow, mask, target_grid)
 
 
 # Find all file directories
@@ -228,9 +222,9 @@ for file in video_files:
     # No header, save as csv without index
     num_row = M * N * 2
     df_save = pd.DataFrame(columns=[f"flow_{i}" for i in range(num_row)])
-    df_border = pd.DataFrame(columns=[f"flow_{i}" for i in range(2)])
-    df_edge = pd.DataFrame(columns=[f"flow_{i}" for i in range(2)])
-    df_obj = pd.DataFrame(columns=[f"flow_{i}" for i in range(2)])
+    df_border = pd.DataFrame(columns=[f"flow_{i}" for i in range(num_row)])
+    df_edge = pd.DataFrame(columns=[f"flow_{i}" for i in range(num_row)])
+    df_obj = pd.DataFrame(columns=[f"flow_{i}" for i in range(num_row)])
 
     # Get optical flow for all frames in the video
     while True:
@@ -263,9 +257,9 @@ for file in video_files:
             final_predicted_flow = predicted_flow[-1]
             # Convert the flow to arrow on image
             x, y, u, v = flow_to_arrow(final_predicted_flow, [M, N], threshold=1.0)
-            u_border, v_border = flow_to_arrow_border(final_predicted_flow)
-            u_edge, v_edge = flow_to_arrow_edge(frame_rgb, final_predicted_flow)
-            u_obj, v_obj = flow_to_arrow_YOLO(frame_rgb, final_predicted_flow)
+            u_border, v_border = flow_to_arrow_border(final_predicted_flow, [M, N])
+            u_edge, v_edge = flow_to_arrow_edge(frame_rgb, final_predicted_flow, [M, N])
+            u_obj, v_obj = flow_to_arrow_YOLO(frame_rgb, final_predicted_flow, [M, N])
             # print(f"Processing frame {frame_count} with {len(x)} arrows")
             # Save the flow data into dataframe
             flow_data = []
@@ -273,14 +267,15 @@ for file in video_files:
                 flow_data.append(u[i])
             for i in range(len(x)):
                 flow_data.append(v[i])
-            flow_data_border = [u_border, v_border]
-            flow_data_edge = [u_edge, v_edge]
-            flow_data_obj = [u_obj, v_obj]
+            # Same column order as flow_data: u of every block, then v of every block
+            flow_data_border = u_border + v_border
+            flow_data_edge = u_edge + v_edge
+            flow_data_obj = u_obj + v_obj
 
             df_save = pd.concat([df_save, pd.DataFrame([flow_data], columns=[f"flow_{i}" for i in range(num_row)])])
-            df_border = pd.concat([df_border, pd.DataFrame([flow_data_border], columns=[f"flow_{i}" for i in range(2)])])
-            df_edge = pd.concat([df_edge, pd.DataFrame([flow_data_edge], columns=[f"flow_{i}" for i in range(2)])])
-            df_obj = pd.concat([df_obj, pd.DataFrame([flow_data_obj], columns=[f"flow_{i}" for i in range(2)])])
+            df_border = pd.concat([df_border, pd.DataFrame([flow_data_border], columns=[f"flow_{i}" for i in range(num_row)])])
+            df_edge = pd.concat([df_edge, pd.DataFrame([flow_data_edge], columns=[f"flow_{i}" for i in range(num_row)])])
+            df_obj = pd.concat([df_obj, pd.DataFrame([flow_data_obj], columns=[f"flow_{i}" for i in range(num_row)])])
 
         else:
             break        

@@ -49,9 +49,75 @@ from models_M.loss import get_loss_module
 from optimizers import get_optimizer
 
 from data_fuseFeat import data_factory, Normalizer
-from variables_fuseFeat import vote_list, num_try
+from variables_fuseFeat import vote_list, num_try, user_list
 
 num_vote = len(vote_list)
+
+def start_wandb_run(config, feature_tag, try_idx, model, data_sizes):
+    """
+    Start one Weights & Biases run for one try. Returns None when --wandb_project is not set.
+
+    Runs of the same experiment are grouped, so the tries can be averaged in the wandb UI.
+    """
+    if config.get('wandb_project') is None:
+        return None
+
+    try:
+        import wandb
+    except ImportError:
+        raise SystemExit("--wandb_project is set but wandb is not installed. Run: pip install wandb")
+
+    logged_config = {
+        k: v for k, v in config.items()
+        if isinstance(v, (int, float, str, bool, list, tuple)) or v is None
+    }
+    logged_config.update(data_sizes)
+    logged_config.update({
+        'features': feature_tag,
+        'num_users': len(user_list),
+        'num_classes': len(vote_list),
+        'num_parameters': utils.count_parameters(model),
+        'try': try_idx,
+    })
+
+    # wandb limits the length of run names, groups and job types (64-128 characters), and fused
+    # feature names exceed it. The full names stay in the run config under 'features'.
+    short_tag = feature_tag.replace("_downsample_480p", "")[:100]
+
+    run = wandb.init(
+        project=config['wandb_project'],
+        group=short_tag + "_" + config['initial_timestamp'],
+        name=short_tag + "_try" + str(try_idx),
+        job_type="train",
+        config=logged_config,
+        reinit=True,
+    )
+
+    # Gradient histograms per layer
+    run.watch(model, log="gradients", log_freq=50)
+
+    return run
+
+
+def scheduled_lr(config, epoch):
+    """
+    Learning rate set at the start of `epoch` (1-based) by warmup and the cosine schedule.
+
+    Returns None when this epoch's rate is decided elsewhere ('step' and 'plateau' after warmup).
+    """
+    base_lr = config['lr']
+    warmup = config.get('warmup_epochs', 0)
+
+    if epoch <= warmup:
+        return base_lr * epoch / warmup
+
+    if config.get('lr_scheduler', 'step') == 'cosine':
+        min_lr = config.get('min_lr', 0.0)
+        progress = (epoch - warmup - 1) / max(1, config['epochs'] - warmup - 1)
+        return min_lr + 0.5 * (base_lr - min_lr) * (1 + np.cos(np.pi * progress))
+
+    return None
+
 
 def get_feature_dims(data_obj):
     """
@@ -359,6 +425,10 @@ def main(config):
     # ---------------------------------------------------------
     # Training and testing loop
     # ---------------------------------------------------------
+    # Identifies the feature set in result file names, so runs don't overwrite each other
+    feature_tag = "+".join(feature_dims.keys())
+    all_try_preds = []
+
     for t in range(num_try):
 
         total_epoch_time = 0
@@ -397,6 +467,16 @@ def main(config):
         start_epoch = 0
         lr_step = 0
         lr = config['lr']
+
+        plateau_scheduler = None
+        if config['lr_scheduler'] == 'plateau':
+            plateau_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                optimizer,
+                mode='min' if config['key_metric'] in NEG_METRICS else 'max',
+                factor=config['lr_factor'][0],
+                patience=config['lr_patience'],
+                min_lr=config['min_lr'],
+            )
 
         if args.load_model:
             model, optimizer, start_epoch = utils.load_model(
@@ -463,6 +543,15 @@ def main(config):
 
         tensorboard_writer = SummaryWriter(config['tensorboard_dir'])
 
+        wandb_run = start_wandb_run(
+            config, feature_tag, t, model,
+            data_sizes={
+                'num_train': len(train_indices),
+                'num_val': len(val_indices),
+                'num_test': len(test_indices),
+            },
+        )
+
         best_value = 1e16 if config['key_metric'] in NEG_METRICS else -1e16
         metrics = []
         best_metrics = {}
@@ -482,6 +571,9 @@ def main(config):
         metrics_names, metrics_values = zip(*aggr_metrics_val.items())
         metrics.append(list(metrics_values))
 
+        if wandb_run is not None:
+            wandb_run.log({'val/' + k: v for k, v in aggr_metrics_val.items() if k != 'epoch'}, step=0)
+
         # -----------------------------------------------------
         # Train
         # -----------------------------------------------------
@@ -495,6 +587,12 @@ def main(config):
             mark = epoch if config['save_all'] else 'last'
 
             epoch_start_time = time.time()
+
+            new_lr = scheduled_lr(config, epoch)
+            if new_lr is not None:
+                lr = new_lr
+                for param_group in optimizer.param_groups:
+                    param_group['lr'] = lr
 
             aggr_metrics_train = trainer.train_epoch(epoch)
 
@@ -516,6 +614,10 @@ def main(config):
 
             total_epoch_time += epoch_runtime
 
+            wandb_log = {'train/' + k: v for k, v in aggr_metrics_train.items() if k != 'epoch'}
+            wandb_log['lr'] = lr
+            wandb_log['epoch_runtime'] = epoch_runtime
+
             if (
                 epoch == config["epochs"]
                 or epoch == start_epoch + 1
@@ -533,13 +635,26 @@ def main(config):
                 metrics_names, metrics_values = zip(*aggr_metrics_val.items())
                 metrics.append(list(metrics_values))
 
+                wandb_log.update({'val/' + k: v for k, v in aggr_metrics_val.items() if k != 'epoch'})
+                wandb_log['val/best_' + config['key_metric']] = best_value
+
+                if plateau_scheduler is not None and epoch > config['warmup_epochs']:
+                    plateau_scheduler.step(aggr_metrics_val[config['key_metric']])
+
+                    if optimizer.param_groups[0]['lr'] != lr:
+                        lr = optimizer.param_groups[0]['lr']
+                        logger.info('Learning rate updated to: {}'.format(lr))
+
+            if wandb_run is not None:
+                wandb_run.log(wandb_log, step=epoch)
+
             utils.save_model(
                 os.path.join(config['data_dir'], 'model_last.pth'),
                 epoch,
                 model,
             )
 
-            if epoch == config['lr_step'][lr_step]:
+            if config['lr_scheduler'] == 'step' and epoch == config['lr_step'][lr_step]:
                 utils.save_model(
                     os.path.join(config['data_dir'], 'model_last.pth'),
                     epoch,
@@ -692,6 +807,15 @@ def main(config):
         df = pd.DataFrame(pred_dict)
         df.to_csv('pred_labels.csv', index=False)
 
+        # Same predictions with sample identity, kept for every try
+        id_df = pd.DataFrame({
+            'try': t,
+            'user': test_data.users_df.iloc[test_indices_list, 0].values,
+            'vote': [vote_list[label] for label in target_labels],
+            'file': test_data.files_df.iloc[test_indices_list, 0].values,
+        })
+        all_try_preds.append(pd.concat([id_df, df], axis=1))
+
         # -----------------------------------------------------
         # Save train predictions
         # -----------------------------------------------------
@@ -728,6 +852,25 @@ def main(config):
         df.loc[df.shape[0], :] = acc.flatten()
         df.to_csv('acc_avg.csv', index=False)
 
+        if wandb_run is not None:
+            import wandb
+
+            test_log = {
+                'test/accuracy': float(np.mean(np.array(predict_labels) == np.array(target_labels))),
+                'test/balanced_accuracy': float(acc.mean()),
+                # accuracy of the final model on its own training data, to see the train/test gap
+                'train_final/accuracy': float(np.mean(np.array(train_predict_labels) == np.array(train_target_labels))),
+                'test/confusion_matrix': wandb.plot.confusion_matrix(
+                    y_true=target_labels, preds=predict_labels, class_names=list(vote_list)
+                ),
+            }
+            for v, vote in enumerate(vote_list):
+                test_log['test/accuracy_' + vote] = float(acc[v, 0])
+
+            wandb_run.log(test_log)
+            wandb_run.summary['best_val_' + config['key_metric']] = best_value
+            wandb_run.finish()
+
         # -----------------------------------------------------
         # Confused instances
         # -----------------------------------------------------
@@ -747,6 +890,7 @@ def main(config):
     df = pd.read_csv("acc_avg.csv")
     df5 = df.apply(lambda x: pd.Series(x.dropna().values))
     df5.to_csv("results/acc_avg_" + str(num_vote) + "q_fuseFeat.csv", index=False)
+    df5.to_csv("results/acc_avg_" + feature_tag + "_" + str(num_vote) + "q_fuseFeat.csv", index=False)
 
     print(df5)
 
@@ -755,6 +899,10 @@ def main(config):
 
     df6 = pd.read_csv("pred_labels.csv")
     df6.to_csv("results/pred_labels_" + str(num_vote) + "q_fuseFeat.csv", index=False)
+
+    pred_all_path = "results/pred_labels_" + feature_tag + "_" + str(num_vote) + "q_fuseFeat_alltries.csv"
+    pd.concat(all_try_preds, ignore_index=True).to_csv(pred_all_path, index=False)
+    print("Saved per-sample test predictions for all tries to", pred_all_path)
 
     df7 = pd.read_csv("train_pred_labels.csv")
     df7.to_csv("results/train_pred_labels_" + str(num_vote) + "q_fuseFeat.csv", index=False)

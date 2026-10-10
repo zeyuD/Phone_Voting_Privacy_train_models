@@ -20,7 +20,7 @@ from functions.band_pass_filter import band_pass_filter
 from functions.crop_time import crop_time
 from functions.interpolate_multiD import interpolate_multiD
 import random
-from run_fusion.variables_fuseFeat import user_list, vote_list, feature_names, interp_len
+from run_fusion.variables_fuseFeat import user_list, vote_list, feature_names, interp_len, split_ref_features
 
 logger = logging.getLogger('__main__')
 
@@ -260,7 +260,7 @@ class VRSkeleton(BaseData):
         data_dir = root_dir + '/'
 
 
-        self.all_df_dict, self.labels_df, self.users_df = self.load_all(
+        self.all_df_dict, self.labels_df, self.users_df, self.files_df = self.load_all(
             data_dir,
             file_list=file_list,
             pattern=pattern
@@ -283,6 +283,7 @@ class VRSkeleton(BaseData):
 
             self.labels_df = self.labels_df.iloc[:limit_size]
             self.users_df = self.users_df.iloc[:limit_size]
+            self.files_df = self.files_df.iloc[:limit_size]
 
         # use all features
         self.feature_names = feature_names
@@ -383,10 +384,13 @@ class VRSkeleton(BaseData):
     def _get_common_files_for_user_vote(self, data_dir, user, vote):
         """
         Find files that exist in every feature folder for this user and vote.
+
+        split_ref_features are included even when they are not loaded, so runs
+        with different feature_names get the same file list and train/test split.
         """
         common_files = None
 
-        for feature_name in feature_names:
+        for feature_name in dict.fromkeys(list(feature_names) + list(split_ref_features)):
             folder = os.path.join(data_dir, feature_name, vote)
             files_f = [
                 file for file in os.listdir(folder)
@@ -419,6 +423,9 @@ class VRSkeleton(BaseData):
 
             users:
                 pd.DataFrame, shape [num_samples, 1]
+
+            files:
+                pd.DataFrame, shape [num_samples, 1], source file name of each sample
         """
 
         # --------------------------------------------------
@@ -516,6 +523,7 @@ class VRSkeleton(BaseData):
 
         labels = pd.DataFrame([0 for _ in range(num_instance)], dtype=np.int32)
         users = pd.DataFrame(['' for _ in range(num_instance)], dtype='object')
+        files = pd.DataFrame(['' for _ in range(num_instance)], dtype='object')
 
         # --------------------------------------------------
         # Step 5: second pass, actually load data
@@ -569,16 +577,18 @@ class VRSkeleton(BaseData):
 
             labels.iloc[num_count] = vote_idx
             users.iloc[num_count] = user
+            files.iloc[num_count] = file
 
             num_count += 1
 
         # If some samples were skipped in the second pass, trim labels/users
         labels = labels.iloc[:num_count].reset_index(drop=True)
         users = users.iloc[:num_count].reset_index(drop=True)
+        files = files.iloc[:num_count].reset_index(drop=True)
 
         print("Num " + self.use + ": ", num_count)
 
-        return data_dict, labels, users
+        return data_dict, labels, users, files
 
 
 data_factory = {

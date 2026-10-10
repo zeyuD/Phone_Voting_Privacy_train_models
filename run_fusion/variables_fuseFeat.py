@@ -23,16 +23,16 @@ num_round = 100
 crop_overlap = 5
 interp_len = 50
 
-# user_list = ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", 
-#              "Junwei", "minglei", "Minjie", "Mingxuan","Rosie", 
-#              "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", 
-#              "Ziyue1"
-#              ]
+user_list = ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", 
+             "Junwei", "minglei", "Minjie", "Mingxuan","Rosie", 
+             "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", 
+             "Ziyue1"
+             ]
 # user_list = ["Chuan", "Gujing", "Haofan", "Junwei", "Yirui"]
 # user_list = ["Chuan"]
 # user_list = ["Zeyu"]
 # user_list = ["JingweiObj", "ZeyuObj"]
-user_list = ["JingweiPad", "ZeyuPad"]
+# user_list = ["JingweiPad", "ZeyuPad"]
 
 # user_list = ["Jingwei", "minglei", "Minjie", "Wen", "Zeyu"]
 # user_othersetting_list = ["Jingwei", "minglei", "Minjie", "Wen", "Zeyu"]
@@ -49,8 +49,12 @@ grid_dim = "22"
 # feature_names = ["all_processpos_norm_downsample_480p_s22"]
 # feature_names = ["egomotion_rot_downsample_480p_s22"]
 feature_names = [
+    # "all_processpos_norm_downsample_480p_srs22", # 0.490
+    # "all_processpos_norm_downsample_480p_downs22", # 0.497
+    "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_srs22",
+
     # "all_processpos_norm_downsample_480p_s22",
-    "all_processpos_norm_downsample_480p_op2",
+    # "all_processpos_norm_downsample_480p_op2",
     # "opticalflowRAFT_varyRef_" + grid_dim + "_downsample_480p_s22",
     # "opticalflowRAFT_" + grid_dim + "_downsample_480p_s22",
     # "opticalflowRAFT_border_" + grid_dim + "_downsample_480p_s22",
@@ -61,4 +65,14 @@ feature_names = [
     # "opticalflowRAFT_edge_varyRef_" + grid_dim + "_downsample_480p_s22",
     # "opticalflowRAFT_obj_" + grid_dim + "_downsample_480p_s22"
     # "opticalflowRAFT_obj_varyRef_" + grid_dim + "_downsample_480p_s22"
+    ]
+
+# Features whose folders decide which files are used and how they are split into
+# train/test (intersection of all of them, plus feature_names). Keep this list
+# unchanged between single-feature runs so they are scored on the same test files.
+# Leave empty to split on feature_names only.
+split_ref_features = [
+    "all_processpos_norm_downsample_480p_s22", # 51.2%
+    # "opticalflowRAFT_" + grid_dim + "_downsample_480p_s22", # 25.1%
+    "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_s22", # 28.0%
     ]
