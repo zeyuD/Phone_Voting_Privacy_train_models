@@ -67,9 +67,6 @@ for setup in setups:
 
                 # print(f"Original video resolution: {frame_width}x{frame_height}, FPS: {fps}")
 
-                # Set the new resolution
-                new_width, new_height = 480, 848
-
                 # Define the codec and create VideoWriter object
                 fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # or 'XVID' for .avi
                 out = cv2.VideoWriter(output_vid_path, fourcc, fps, (new_width, new_height))
