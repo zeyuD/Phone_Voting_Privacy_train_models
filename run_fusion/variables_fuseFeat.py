@@ -51,7 +51,9 @@ grid_dim = "22"
 feature_names = [
     # "all_processpos_norm_downsample_480p_srs22", # 0.490
     # "all_processpos_norm_downsample_480p_downs22", # 0.497
-    "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_srs22",
+    # "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_srs22",
+    # "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_downs22",
+    "opticalflowRAFT_edge_" + "3040" + "_downsample_480p_s22",
 
     # "all_processpos_norm_downsample_480p_s22",
     # "all_processpos_norm_downsample_480p_op2",

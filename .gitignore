@@ -5,7 +5,6 @@
 
 # Local configuration files
 .vscode/
-wandb/
 archived/
 config/machine_config.json
 functions/load_machine_config.py

@@ -27,7 +27,7 @@ model = raft_large(pretrained=True, progress=False).to(compdev)
 model = model.eval()
 
 
-votes = ["A", "B", "C", "D", "E"]
+# votes = ["A", "B", "C", "D", "E"]
 M = 30
 N = 40
 

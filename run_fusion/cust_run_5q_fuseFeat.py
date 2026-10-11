@@ -9,7 +9,6 @@ from functions.load_machine_config import load_machine_config
 
 config = load_machine_config()
 device = config["compdev"]
-grid_dim = "22"
 
 # print("User: ", user)
 subprocess.run(["python", "run_fusion/main_5q_fuseFeat.py",

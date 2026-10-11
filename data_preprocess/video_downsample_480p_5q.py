@@ -15,24 +15,24 @@ work_directory = config["data_dir"] + "Phone_Privacy/"
 
 # Sample lists for setups, votes, users, and instances
 votes = ["A", "B", "C", "D", "E"]
-# votes = ["B", "C", "D", "E"]
-# votes = ["A"]
 
 # Create a dictionary of setups, each will have different setup and users
 setups = {
     # "phone_s22": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
     # "phone_s22": ["JingweiObj", "ZeyuObj"],
     # "pad_op2": ["JingweiPad", "ZeyuPad"],
-    "phonesr_s22": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
-    "phonedown_s22": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
+    # "phonesr_s22": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
+    # "phonedown_s22": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
+    "phone180_s22": ["Chuan", "Jimmy", "minglei", "Zeyu", "Ziyue"],
+    "phone240_s22": ["Chuan", "Jimmy", "minglei", "Zeyu", "Ziyue"],
     }
 
 # Loop through the variables and construct the video path for each combination
 for setup in setups:
-    if setup == "phone_s22" or setup == "phonesr_s22" or setup == "phonedown_s22":
+    if "phone" in setup:
         # Set the new resolution
         new_width, new_height = 480, 848
-    elif setup == "pad_op2":
+    elif "pad" in setup:
         new_width, new_height = 848, 480
     users = setups[setup]
     print("Running setup: ", setup)
