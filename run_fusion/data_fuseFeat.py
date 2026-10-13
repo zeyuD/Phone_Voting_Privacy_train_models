@@ -303,7 +303,7 @@ class VRSkeleton(BaseData):
         For normal features:
             detect taps -> keep original length -> set outside crop window to pad_value -> interpolate
 
-        For no_crop_features:
+        For no_crop_features (or every feature when no_crop_all is set):
             no crop/padding -> interpolate only
 
         Output:
@@ -341,7 +341,9 @@ class VRSkeleton(BaseData):
         # -----------------------------
         # Case 1: feature skips crop
         # -----------------------------
-        if feature_name in no_crop_features:
+        no_crop_all = isinstance(self.config, dict) and self.config.get("no_crop_all", False)
+
+        if no_crop_all or feature_name in no_crop_features:
             data_to_use_i = seg_data_i.copy()
 
         # -----------------------------
@@ -489,7 +491,7 @@ class VRSkeleton(BaseData):
                         filepath = os.path.join(data_dir, feature_name, vote, file)
 
                         try:
-                            data_to_use_i = self._read_crop_interp_one_file(filepath)
+                            data_to_use_i = self._read_crop_interp_one_file(filepath, feature_name=feature_name)
                         except Exception as e:
                             print(f"Warning: failed to read {filepath}: {e}")
                             valid = False

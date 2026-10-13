@@ -18,7 +18,7 @@ compdev = config["compdev"]
 # vote_list = ["A", "B", "C", "D"]
 vote_list = ["A", "B", "C", "D", "E"]
 
-num_try = 3
+num_try = 5
 num_round = 100
 crop_overlap = 5
 interp_len = 50
@@ -28,13 +28,14 @@ user_list = ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei",
              "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", 
              "Ziyue1"
              ]
+
 # user_list = ["Chuan", "Gujing", "Haofan", "Junwei", "Yirui"]
 # user_list = ["Chuan"]
 # user_list = ["Zeyu"]
 # user_list = ["JingweiObj", "ZeyuObj"]
 # user_list = ["JingweiPad", "ZeyuPad"]
 
-# user_list = ["Jingwei", "minglei", "Minjie", "Wen", "Zeyu"]
+# user_list = ["Chuan", "Jimmy", "minglei", "Zeyu", "Ziyue"]
 # user_othersetting_list = ["Jingwei", "minglei", "Minjie", "Wen", "Zeyu"]
 # user_othersetting_list = ["ZeyuZoom"]
 
@@ -51,21 +52,23 @@ grid_dim = "22"
 feature_names = [
     # "all_processpos_norm_downsample_480p_srs22", # 0.490
     # "all_processpos_norm_downsample_480p_downs22", # 0.497
-    # "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_srs22",
+    # "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_srs22", # combine 0.491
     # "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_downs22",
-    "opticalflowRAFT_edge_" + "3040" + "_downsample_480p_s22",
+    # "opticalflowRAFT_edge_" + "3040" + "_downsample_480p_s22",
+    # "all_processpos_norm_downsample_480p_180s22", # 0.389
+    # "all_processpos_norm_downsample_480p_240s22", # 0.442
 
-    # "all_processpos_norm_downsample_480p_s22",
+    "all_processpos_norm_downsample_480p_s22", # 0.504
     # "all_processpos_norm_downsample_480p_op2",
     # "opticalflowRAFT_varyRef_" + grid_dim + "_downsample_480p_s22",
     # "opticalflowRAFT_" + grid_dim + "_downsample_480p_s22",
-    # "opticalflowRAFT_border_" + grid_dim + "_downsample_480p_s22",
+    # "opticalflowRAFT_border_" + grid_dim + "_downsample_480p_s22", # 0.492
     # "egomotion_rot_downsample_480p_s22",
     # "opticalflowRAFT_border_varyRef_" + grid_dim + "_downsample_480p_s22",
-    # "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_s22", # Best after fuse with eyeFeat?
+    "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_s22", # Best after fuse with eyeFeat? # combin 0.497
     # "objYOLO_downsample_480p_s22",
     # "opticalflowRAFT_edge_varyRef_" + grid_dim + "_downsample_480p_s22",
-    # "opticalflowRAFT_obj_" + grid_dim + "_downsample_480p_s22"
+    # "opticalflowRAFT_obj_" + grid_dim + "_downsample_480p_s22" # 0.504, 0.515 freeze
     # "opticalflowRAFT_obj_varyRef_" + grid_dim + "_downsample_480p_s22"
     ]
 

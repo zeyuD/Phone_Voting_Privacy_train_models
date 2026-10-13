@@ -38,3 +38,6 @@ mvts_transformer
 
 # Weights & Biases run logs
 wandb/
+
+# Saved models
+results/*.pth

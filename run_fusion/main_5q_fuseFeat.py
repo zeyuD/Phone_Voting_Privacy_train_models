@@ -447,6 +447,24 @@ def main(config):
                 else:
                     param.requires_grad = False
 
+        if config.get('pretrained_model'):
+            pretrained_path = config['pretrained_model'].replace('{try}', str(t))
+            checkpoint = torch.load(pretrained_path, map_location='cpu')
+            loaded_features, primary_head_loaded = model.load_pretrained_branches(checkpoint['state_dict'])
+
+            logger.info("Loaded pre-trained branches {} from {}".format(loaded_features, pretrained_path))
+            if primary_head_loaded:
+                logger.info("Loaded the pre-trained classifier of {} into the primary path".format(model.primary_feature))
+
+            not_loaded = set(config.get('freeze_features') or []) - set(loaded_features)
+            if not_loaded:
+                raise ValueError("--freeze_features {} not found in {}".format(sorted(not_loaded), pretrained_path))
+
+        if config.get('freeze_features'):
+            if not config.get('pretrained_model'):
+                logger.warning("--freeze_features is set without --pretrained_model: the frozen branches keep random weights.")
+            model.freeze_features(config['freeze_features'])
+
         logger.info("Model:\n{}".format(model))
         logger.info("Total number of parameters: {}".format(utils.count_parameters(model)))
         logger.info("Trainable parameters: {}".format(utils.count_parameters(model, trainable=True)))
@@ -616,6 +634,8 @@ def main(config):
 
             wandb_log = {'train/' + k: v for k, v in aggr_metrics_train.items() if k != 'epoch'}
             wandb_log['lr'] = lr
+            if hasattr(model, 'gate'):
+                wandb_log['gate'] = model.gate.item()
             wandb_log['epoch_runtime'] = epoch_runtime
 
             if (
@@ -691,6 +711,11 @@ def main(config):
             header,
             sheet_name="metrics",
         )
+
+        # Keep the trained model of this try under a name that later runs do not overwrite
+        model_path = "results/model_" + feature_tag + "_" + str(len(vote_list)) + "q_fuseFeat_try" + str(t) + ".pth"
+        utils.save_model(model_path, config["epochs"], model)
+        logger.info("Saved model to {}".format(model_path))
 
         utils.register_record(
             config["records_file"],
