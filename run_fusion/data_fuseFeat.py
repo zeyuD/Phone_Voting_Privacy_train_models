@@ -25,6 +25,63 @@ from run_fusion.variables_fuseFeat import user_list, vote_list, feature_names, i
 logger = logging.getLogger('__main__')
 
 
+# Eye features written by save_features_all_feat_downsample_480p_5q_processpos.m are numbered by
+# their position in MATLAB's sorted listing of the angle folder ("_10" sorts before "_1_"), not
+# by recording number. Files of these features are mapped back to their recording on load.
+POSITION_NUMBERED_PREFIX = "all_processpos_norm_downsample_480p_"
+
+# Feature-name suffix -> data folder the MATLAB script read the angle files from
+EYE_SUFFIX_TO_SETUP = {
+    "s22": "phone_s22",
+    "op2": "pad_op2",
+    "srs22": "phonesr_s22",
+    "downs22": "phonedown_s22",
+    "180s22": "phone180_s22",
+    "240s22": "phone240_s22",
+    "180srs22": "phone180sr_s22",
+    "240srs22": "phone240sr_s22",
+    "rhs22": "phonerh_s22",
+    "dss22": "phoneds_s22",
+}
+
+
+def eye_file_to_recording(data_dir, feature_name, user, vote):
+    """
+    For a position-numbered eye feature, map each saved file name to the file name of the
+    recording it actually holds, e.g. {"Chuan_A_1.csv": "Chuan_A_10.csv", ...}.
+
+    The order is rebuilt from the angle folder the MATLAB script listed:
+        <data_dir>/../data/<setup>/<vote>/downsample_480p/angle/<user>_<vote>_<n>_angle.csv
+    sorted by character code, like MATLAB's dir(). This assumes the angle folder has not
+    changed since the eye features were saved.
+
+    Returns None for features that are numbered by recording already.
+    """
+    if not feature_name.startswith(POSITION_NUMBERED_PREFIX):
+        return None
+
+    suffix = feature_name[len(POSITION_NUMBERED_PREFIX):]
+    if suffix not in EYE_SUFFIX_TO_SETUP:
+        raise ValueError(
+            f"Unknown eye feature '{feature_name}': add its data folder to EYE_SUFFIX_TO_SETUP."
+        )
+
+    angle_dir = os.path.join(
+        os.path.dirname(os.path.normpath(data_dir)), "data",
+        EYE_SUFFIX_TO_SETUP[suffix], vote, "downsample_480p", "angle",
+    )
+    prefix = user + "_" + vote + "_"
+    angle_files = sorted(
+        f for f in os.listdir(angle_dir)
+        if f.startswith(prefix) and f.endswith("_angle.csv")
+    )
+
+    return {
+        f"{prefix}{position}.csv": angle_file[:-len("_angle.csv")] + ".csv"
+        for position, angle_file in enumerate(angle_files, start=1)
+    }
+
+
 class Normalizer(object):
     """
     Normalizes dataframe across ALL contained rows.
@@ -385,12 +442,19 @@ class VRSkeleton(BaseData):
 
     def _get_common_files_for_user_vote(self, data_dir, user, vote):
         """
-        Find files that exist in every feature folder for this user and vote.
+        Find recordings that exist in every feature folder for this user and vote.
 
         split_ref_features are included even when they are not loaded, so runs
         with different feature_names get the same file list and train/test split.
+
+        Files are compared by recording, so position-numbered eye files are first
+        mapped to their recording (see eye_file_to_recording). Returned names are
+        recording names; feature_file_path() turns them back into each feature's file.
         """
         common_files = None
+
+        if not hasattr(self, "file_name_maps"):
+            self.file_name_maps = {}
 
         for feature_name in dict.fromkeys(list(feature_names) + list(split_ref_features)):
             folder = os.path.join(data_dir, feature_name, vote)
@@ -398,6 +462,19 @@ class VRSkeleton(BaseData):
                 file for file in os.listdir(folder)
                 if user + "_" in file and not file.startswith(".")
             ]
+
+            to_recording = eye_file_to_recording(data_dir, feature_name, user, vote)
+            if to_recording is not None:
+                unmapped = [file for file in files_f if file not in to_recording]
+                if unmapped:
+                    logger.warning(
+                        "%s: %d %s %s file(s) have no matching angle file and are skipped",
+                        feature_name, len(unmapped), user, vote,
+                    )
+                self.file_name_maps[(feature_name, user, vote)] = {
+                    to_recording[file]: file for file in files_f if file in to_recording
+                }
+                files_f = list(self.file_name_maps[(feature_name, user, vote)].keys())
 
             if common_files is None:
                 common_files = set(files_f)
@@ -408,6 +485,17 @@ class VRSkeleton(BaseData):
         common_files = sorted(list(common_files))
 
         return common_files
+
+
+    def feature_file_path(self, data_dir, feature_name, user, vote, recording_file):
+        """
+        Path of one recording's file in one feature folder (the eye file that holds it,
+        for position-numbered eye features).
+        """
+        name_map = getattr(self, "file_name_maps", {}).get((feature_name, user, vote))
+        file = name_map[recording_file] if name_map is not None else recording_file
+
+        return os.path.join(data_dir, feature_name, vote, file)
     
 
     def load_all(self, data_dir, file_list=None, pattern=None):
@@ -488,7 +576,7 @@ class VRSkeleton(BaseData):
 
                     # Check every feature for NaN after preprocessing
                     for feature_name in feature_names:
-                        filepath = os.path.join(data_dir, feature_name, vote, file)
+                        filepath = self.feature_file_path(data_dir, feature_name, user, vote, file)
 
                         try:
                             data_to_use_i = self._read_crop_interp_one_file(filepath, feature_name=feature_name)
@@ -511,6 +599,12 @@ class VRSkeleton(BaseData):
                         })
 
         num_instance = len(sample_meta)
+        if num_instance == 0:
+            raise ValueError(
+                f"No samples found for use='{self.use}'. No file exists in every folder of "
+                f"feature_names + split_ref_features {list(dict.fromkeys(list(feature_names) + list(split_ref_features)))} "
+                f"for users {user_list}; check that these folders contain these users."
+            )
 
         # --------------------------------------------------
         # Step 4: initialize one dataframe per feature
@@ -543,7 +637,7 @@ class VRSkeleton(BaseData):
             valid = True
 
             for feature_name in feature_names:
-                filepath = os.path.join(data_dir, feature_name, vote, file)
+                filepath = self.feature_file_path(data_dir, feature_name, user, vote, file)
 
                 data_to_use_i = self._read_crop_interp_one_file(filepath, feature_name=feature_name)
 
