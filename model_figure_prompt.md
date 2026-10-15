@@ -1,127 +1,44 @@
-# Task: draw the model architecture figure in PowerPoint (Mac) for a paper
+# Reference descriptions for the paper
 
-You are going to draw one publication-quality architecture figure in Microsoft PowerPoint on a Mac. The figure goes into a research paper, so it must be accurate to the model described below, readable when printed small, and built from editable native shapes (no pasted screenshots).
+Paper-style descriptions of the model and its two input features, matching the code as configured in October 2026 (`same_time` fusion, eye branch pre-trained in stage 1 and frozen, no gate). Text in [square brackets] is a placeholder that still needs the author's input. The open items at the end list what must be checked before these go into the paper.
 
-You do not have access to the code. Everything you need about the model is in this brief. Do not add, rename or guess components that are not listed here. Where something is marked "confirm with the author", ask before finalizing instead of inventing an answer.
+## Model architecture
 
-## What the model does
+**Model architecture.** We classify the selected option from two time-aligned feature streams extracted from the same front-camera clip: a 39-dimensional eye descriptor per frame (iris-centre positions and their moving statistics, a gaze-point estimate, gaze and head angles, eyelid opening and eye area) and an 8-dimensional optical-flow descriptor (RAFT flow averaged over a 2 × 2 grid of the frame, giving horizontal and vertical components per cell). Both streams are resampled to T = 50 time steps. Each stream is encoded by its own temporal Transformer: a linear projection to d = 16 dimensions, fixed sinusoidal positional encoding, and three encoder layers with four-head self-attention over time and a feed-forward sublayer of width 256, each sublayer followed by a residual connection and batch normalization. The encoded sequences are then combined by same-time cross-modal fusion: at every time step, the two modality tokens attend only to each other through a single four-head attention layer with a residual connection and layer normalization, so that information is exchanged between modalities without mixing time steps. The fused tokens are masked, concatenated across modalities, flattened, and passed to a two-layer classifier (1600 → 16 → 5, GELU, dropout 0.2) that outputs logits over the five options. During training, each modality additionally feeds an auxiliary classifier on its time-averaged fused tokens, and the loss is L = CE(ŷ_fused) + λ · ½ Σ_m CE(ŷ_m) with λ = 0.1; the auxiliary heads are discarded at inference. Training proceeds in two stages: an eye-only model is first trained with the same architecture, and its eye encoder is then loaded into the two-stream model and frozen (weights and normalization statistics fixed), while the optical-flow encoder, fusion layer and classifier are trained. The full model has about 86k parameters.
 
-It classifies which of five on-screen options (A to E) a person chose on a phone, from a short front-camera video clip. Two feature streams are extracted from the same clip, each as a time series, and a small Transformer classifies the pair.
+## Eye feature
 
-## Architecture facts (exact, as currently configured)
+**Eye feature.** For each frame, 478 facial landmarks are extracted with MediaPipe Face Mesh (with iris refinement), and gaze and head-pose angles are estimated with a ResNet-based appearance model trained on MPIIFaceGaze (ptgaze). All signals are linearly resampled to 80 samples per clip. Landmarks are first expressed in a face-centred frame: they are translated to a left-eye corner landmark, rotated by the head orientation measured on the first frame, and scaled by the inter-ocular distance relative to the first frame, to reduce the effect of head movement and camera distance. From this frame we take the 3-D positions of the left and right iris centres (6 dimensions) together with their moving variance, mean, median and standard deviation over a 10-sample window (4 × 6 = 24 dimensions). A point of gaze (2 dimensions) is obtained by averaging the two iris centres in the image plane and smoothing it within fixations: consecutive samples closer than 3 × 10⁻⁴ (normalized coordinates) for at least five samples are grouped and filtered with a five-sample moving mean, and the last value is held between fixations. Gaze pitch and yaw (2 dimensions) and head roll, pitch and yaw (3 dimensions) come from the gaze estimator. Two eye-shape cues complete the vector: eyelid opening (1 dimension), the vertical distance between upper- and lower-lid landmarks averaged over both eyes, and eye area (1 dimension), the convex-hull area of the 16 eye-contour landmarks averaged over both eyes. The resulting 39-dimensional sequence is z-normalized per recording over all of its values.
 
-Notation: B = batch, T = 50 time steps, d = 16 (model width), M = 2 modalities, C = 5 classes.
+| Columns (0-based) | Dims | Feature |
+|---|---|---|
+| 0–5 | 6 | Iris-centre position, left and right eye (MediaPipe landmarks 473, 468), x/y/z, in a face-aligned frame |
+| 6–11 | 6 | Moving variance of the 6 iris coordinates |
+| 12–17 | 6 | Moving mean of the 6 iris coordinates |
+| 18–23 | 6 | Moving median of the 6 iris coordinates |
+| 24–29 | 6 | Moving standard deviation of the 6 iris coordinates |
+| 30–31 | 2 | Fixation-smoothed point of gaze (x, y) |
+| 32–33 | 2 | Gaze pitch and yaw |
+| 34–36 | 3 | Head roll, pitch and yaw |
+| 37 | 1 | Eyelid opening |
+| 38 | 1 | Eye area |
+| **Total** | **39** | |
 
-**Inputs (one clip)**
+## Optical-flow feature
 
-| Stream | Name to show in the figure | Shape per clip | What it is |
-|---|---|---|---|
-| 1 | Eye feature | T × 39 | per-frame eye/gaze/face feature vector from the front camera |
-| 2 | Optical flow | T × 8 | RAFT optical flow averaged over a 2 × 2 grid of the frame; (u, v) per cell |
+**Edge-weighted optical flow.** Dense optical flow is estimated with RAFT (the large model, pretrained weights from torchvision) on the 480 × 848 front-camera video, giving a per-pixel horizontal and vertical displacement for every frame relative to the first frame of the clip. To restrict the flow to structured image content, where flow estimates are most reliable, each frame is passed through a Canny edge detector (OpenCV, hysteresis thresholds of 100 and 200 on the 8-bit intensity gradient, 3 × 3 Sobel aperture). Flow is then averaged over the edge pixels inside each cell of a 2 × 2 grid, giving an 8-dimensional descriptor per frame (u and v for each of the four cells). Cells with no edge pixels are assigned zero flow. Each sequence is linearly resampled to 80 samples and z-scored over all of its values.
 
-Both streams come from the same video, are stored at 80 frames and resampled to T = 50 before the model. Show this only as a small "resample to T = 50" note, not as a block of the network.
+**Band-pass filtering.** Before training, each flow channel is band-pass filtered with a fourth-order Butterworth design applied forward and backward (`filtfilt`), so the filter introduces no phase shift and does not displace the tap transient in time. The pass band is 1–10 Hz, nominally referenced to the camera's 30 Hz frame rate, whose Nyquist limit is 15 Hz. The lower cut-off removes slow drift of the phone in the hand and of the head, which carries little information about which option is tapped. The upper cut-off keeps the short motion transient caused by the tap while leaving a 5 Hz transition margin below Nyquist and discarding frame-level estimation noise. The band was chosen by a sliding-window search over candidate bands [f_lo, f_hi] within (0, 15) Hz, [step and window width], retaining the band that gave the highest [validation] accuracy [for the optical-flow stream alone].
 
-**Per-modality temporal encoder (two separate copies, no weight sharing)**
+## Open items before using these in the paper
 
-1. Linear projection: input dim → 16, multiplied by √16.
-2. Fixed sinusoidal positional encoding (added), with dropout.
-3. Transformer encoder, 3 layers. Each layer:
-   - multi-head self-attention over time (4 heads), then add & BatchNorm
-   - feed-forward: Linear 16 → 256, GELU, Linear 256 → 16, then add & BatchNorm
-4. GELU, then dropout (0.2).
-
-Output of each encoder: a sequence of T tokens of size 16.
-
-Note that the normalization inside the encoder is **BatchNorm**, not LayerNorm. Label it that way.
-
-**Same-time cross-modal fusion**
-
-- At each time step t, the M = 2 tokens (eye token at t, optical-flow token at t) form a tiny sequence of length 2.
-- One multi-head attention layer (4 heads) runs over those 2 tokens, followed by add & LayerNorm.
-- Attention is only between modalities at the same time step. There is no attention across time steps in this block.
-- Output: for each modality, T fused tokens of size 16.
-
-This is the key idea of the figure. Draw it as T narrow columns (show t = 1, 2, 3, …, T), each column holding one eye token and one optical-flow token joined by a double-headed arrow.
-
-**Classifier head**
-
-1. Apply the padding mask, concatenate the two modalities per time step → T × 32.
-2. Flatten → 1600.
-3. Linear 1600 → 16, GELU, Dropout (0.2), Linear 16 → 5.
-4. Output: class logits for A to E.
-
-**Auxiliary heads (training only)**
-
-- One per modality, taking that modality's tokens **after** the fusion block.
-- Masked mean pooling over time → Linear 16 → 16, GELU, Dropout, Linear 16 → 5.
-- Not used at test time. Draw with a dashed outline and the label "training only".
-
-**Training loss**
-
-L = CE(fused logits) + λ · mean over modalities of CE(auxiliary logits), with λ = 0.1.
-
-**Sizes worth printing in a caption or small note**
-
-d = 16, 4 heads, 3 encoder layers, feed-forward width 256, dropout 0.2, T = 50, 5 classes, about 86k parameters in total (about 29k per encoder).
-
-## Layout
-
-Left-to-right flow, single wide panel:
-
-1. Far left: the two input streams, stacked vertically, each drawn as a strip of thin frame cells with its name and shape.
-2. Two parallel temporal-encoder blocks, one per stream, each showing: Linear projection → positional encoding → Transformer encoder × 3. An optional small inset may expand one encoder layer (self-attention, add & BatchNorm, feed-forward, add & BatchNorm).
-3. Centre: the same-time cross-modal fusion panel described above. Make this the visual focus.
-4. Right: mask · concat · flatten → classifier head → fused logits (5 classes).
-5. Below the fusion panel: the dashed auxiliary branch (mean pool → auxiliary head, × M), with an arrow into a loss box that also receives the fused logits.
-
-Keep arrows horizontal or vertical only (elbow connectors, no diagonals), and do not let any arrow cross a label.
-
-## Visual style
-
-- **Palette: Morandi (muted, grey-toned).** Use one hue per role and keep it consistent:
-  - eye stream: dusty blue (fill `B4C3CE`, outline `7F95A6`)
-  - optical-flow stream: dusty rose (fill `DCC1BD`, outline `B08E8A`)
-  - fusion: sage green (fill `C3CFBE`, outline `8FA28A`, light panel `E8EDE5`)
-  - classifier head: mauve (fill `CFC5D3`, outline `9A8BA0`)
-  - auxiliary branch: sand (fill `E3D7BE`, outline `B5A27C`), dashed outline
-  - loss: taupe (fill `C9C1B9`, outline `8A8179`)
-  - text `45464A`, arrows `77787B`, white background
-- Rounded rectangles with thin (0.75 to 1 pt) outlines, no shadows, no gradients, no 3D effects.
-- One sans-serif font throughout (Arial or Helvetica). No text smaller than 8 pt at final print size.
-- No slide title, no decorative elements, no logo. The paper supplies the caption.
-- Colours must not be the only cue: every block carries a text label.
-
-## Size and export
-
-- Set the slide to the figure's real size. Default to a full-width two-column figure: **7.0 in wide by about 3.2 in tall**. Confirm the target width with the author if you can; if the paper is single-column, use 3.4 in wide and simplify labels.
-- Group related shapes (each encoder, the fusion panel, the head, the auxiliary branch) so the author can move them.
-- Deliver two files: the editable `.pptx`, and a vector **PDF** exported from it (File → Export → PDF). Check that the PDF text is selectable, which shows it stayed vector.
-
-## Checks before you hand it over
-
-- Every number in the figure matches this brief (39, 8, 16, 256, 1600, 5, T = 50, 3 layers, 4 heads, λ = 0.1).
-- The encoder shows BatchNorm; the fusion block shows LayerNorm.
-- The fusion arrows connect the two modalities within a time step only, never across time steps.
-- The auxiliary branch starts after the fusion block, is dashed, and is marked "training only".
-- At 100% zoom at the final size, all text is readable and nothing overlaps or is clipped.
-- View the exported PDF, not just the slide, before reporting it done.
-
-## Confirm with the author
-
-1. The display names of the two streams ("Eye feature" and "Optical flow" are the working names).
-2. The target figure width (two-column or single-column).
-3. Whether the paper's final model is the same-time fusion above or the **gated variant** below. Draw the same-time version unless told otherwise.
-
-## Optional variant: gated fusion with a frozen eye branch
-
-Only draw this if the author asks for it. It is a two-stage training scheme built on the same parts:
-
-- Stage 1: an eye-only model is trained (eye encoder → single-modality fusion block → classifier).
-- Stage 2: that eye path is copied in and frozen (mark it with a lock or "frozen" tag). The two-modality path above (both encoders → same-time fusion → classifier) produces a correction.
-- Output: logits = eye-path logits + g · correction logits, where g is a single learned gate initialized at 0, so the model starts out identical to the eye-only model.
-
-In the figure this adds a second, frozen classifier path from the eye encoder, a multiplication by g on the fused path, and a sum node before the output.
-
-## What to report back
-
-A short note with: the two file paths, the final figure size, anything you could not confirm with the author, and any place where you deviated from this brief and why.
+1. **Band selection.** No sliding-window band search exists in the repository or the MATLAB folder. Fill in the bracketed text from how 1–10 Hz was actually chosen; the selection must use validation data, not the test set.
+2. **The band-pass is currently not applied.** The filter only runs inside the loader's crop branch, and the run file has `--no_crop_all` on, so `--pass_band` is ignored. Describe filtering only if the reported results used it.
+3. **"30 Hz" is nominal.** Each clip (about 40–150 frames at 29.4 fps) is stretched to 80 samples before filtering, so the real sample rate differs per clip; for a typical 59-frame clip the nominal 1–10 Hz band is about 1.3–13 Hz. Filter before resampling, or describe the band as normalized frequency.
+4. **The data do not favour the band.** In a quick test, removing the band-pass improved the edge optical-flow feature by about 3 points, and transformer runs without it reached 32.0%. A claim that 1–10 Hz was selected for accuracy needs the author's own sweep behind it.
+5. **Optical-flow extraction details.** Flow is accumulated displacement from the first frame, not frame-to-frame. The edge mask is taken from the current frame while the flow is laid out on the first frame's pixel grid, so the two drift apart as the scene moves; computing edges on the reference frame would fix this.
+6. **Eye-feature normalization is two-step.** Iris positions, moving mean, moving median, point of gaze and angles are each z-scored as a block first, then all 39 columns are z-scored together. Moving variance, moving standard deviation, eyelid opening and eye area skip the first step.
+7. **Head-rotation removal uses the first frame only**, so rotation during the clip remains in the iris columns. Face distance is computed by the gaze estimator but not included.
+8. **Translation landmark.** The code calls landmark 362 the left outer eye corner, but in MediaPipe's numbering 362 is the inner corner (263 is the outer). Check before naming it.
+9. **Eye-file numbering.** The MATLAB script numbers saved eye files by position in the sorted folder listing (`_10` before `_1`), so eye file `i` is not recording `i`. This does not change the descriptions above, but the files must be renamed or regenerated before any per-recording claim, and before eye and optical flow are fused.
+10. **Stage-1 model per try.** The run file loads the try-0 eye model for every stage-2 try. Use `try{try}` in `--pretrained_model` if each try should start from its own stage-1 model.
