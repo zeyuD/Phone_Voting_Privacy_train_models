@@ -42,14 +42,42 @@ setups = {
     #     "users": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
     #     "save_dir": "phonedown_s22/"
     #     },
-    "phone180_s22": {
-        "users": ["Chuan", "Jimmy", "minglei", "Zeyu", "Ziyue"],
-        "save_dir": "phone180_s22/"
+    # "phone180_s22": {
+    #     "users": ["Chuan", "Jimmy", "minglei", "Zeyu", "Ziyue"],
+    #     "save_dir": "phone180_s22/"
+    #     },
+    # "phone240_s22": {
+    #     "users": ["Chuan", "Jimmy", "minglei", "Zeyu", "Ziyue"],
+    #     "save_dir": "phone240_s22/"
+    #     },
+    # "phone180sr_s22": {
+    #     "users": ["Chuan", "Jimmy", "minglei", "Zeyu", "Ziyue"],
+    #     "save_dir": "phone180sr_s22/"
+    #     },
+    # "phone240sr_s22": {
+    #     "users": ["Chuan", "Jimmy", "minglei", "Zeyu", "Ziyue"],
+    #     "save_dir": "phone240sr_s22/"
+    #     },
+    # "pad_op2": {
+    #     "users": ["HaochenPad", "LinweiPad", "NingPad", "RuiPad", "ShengyanPad", "WeiPad", "WenPad", "YipeiPad", "YuPad"],
+    #     "save_dir": "pad_op2/"
+    #     },
+    "phone_s22": {
+        "users": ["Haochen", "Linwei", "Rui", "Yipei", "Yu"],
+        "save_dir": "phone_s22/"
         },
-    "phone240_s22": {
-        "users": ["Chuan", "Jimmy", "minglei", "Zeyu", "Ziyue"],
-        "save_dir": "phone240_s22/"
-        },
+    # "phone_s22": {
+    #     "users": ["Ning", "Shengyan", "Wenl"],
+    #     "save_dir": "phone_s22/"
+    #     },
+    # "phonerh_s22": {
+    #     "users": ["Jingwei", "Ning", "Shengyan", "Wen"],
+    #     "save_dir": "phonerh_s22/"
+    #     },
+    # "phoneds_s22": {
+    #     "users": ["Jingwei", "Ning", "Shengyan", "Wen"],
+    #     "save_dir": "phoneds_s22/"
+    #     },
 }
 
 for setup, details in setups.items():

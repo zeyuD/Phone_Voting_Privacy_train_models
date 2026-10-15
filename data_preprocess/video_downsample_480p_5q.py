@@ -21,10 +21,17 @@ setups = {
     # "phone_s22": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
     # "phone_s22": ["JingweiObj", "ZeyuObj"],
     # "pad_op2": ["JingweiPad", "ZeyuPad"],
+    # "pad_op2": ["HaochenPad", "LinweiPad", "NingPad", "RuiPad", "ShengyanPad", "WeiPad", "WenPad", "YipeiPad", "YuPad"],
     # "phonesr_s22": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
     # "phonedown_s22": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
-    "phone180_s22": ["Chuan", "Jimmy", "minglei", "Zeyu", "Ziyue"],
-    "phone240_s22": ["Chuan", "Jimmy", "minglei", "Zeyu", "Ziyue"],
+    # "phone180_s22": ["Chuan", "Jimmy", "minglei", "Zeyu", "Ziyue"],
+    # "phone240_s22": ["Chuan", "Jimmy", "minglei", "Zeyu", "Ziyue"],
+    # "phone180sr_s22": ["Chuan", "Jimmy", "minglei", "Zeyu", "Ziyue"],
+    # "phone240sr_s22": ["Chuan", "Jimmy", "minglei", "Zeyu", "Ziyue"],
+    "phone_s22": ["Haochen", "Linwei", "Rui", "Yipei", "Yu"],
+    # "phone_s22": ["Ning", "Shengyan", "Wenl"],
+    # "phonerh_s22": ["Jingwei", "Ning", "Shengyan", "Wen"],
+    # "phoneds_s22": ["Jingwei", "Ning", "Shengyan", "Wen"],
     }
 
 # Loop through the variables and construct the video path for each combination

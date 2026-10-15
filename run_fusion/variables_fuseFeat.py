@@ -14,26 +14,37 @@ compdev = config["compdev"]
 # vote_list = ["A", "C"]
 # vote_list = ["A", "B"]
 # vote_list = ["A", "C", "E"]
-# vote_list = ["A", "B", "C"]
+vote_list = ["A", "B", "C"]
 # vote_list = ["A", "B", "C", "D"]
-vote_list = ["A", "B", "C", "D", "E"]
+# vote_list = ["A", "B", "C", "D", "E"]
 
 num_try = 5
 num_round = 100
 crop_overlap = 5
 interp_len = 50
 
-user_list = ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", 
-             "Junwei", "minglei", "Minjie", "Mingxuan","Rosie", 
-             "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", 
-             "Ziyue1"
-             ]
+# user_list = ["Chuan", "Gujing", "Haochen", "Haofan", "Jimmy",
+#              "Jingwei", "Junwei", "Linwei", "minglei", "Mingxuan", 
+#              "Minjie", "Mingxuan", "Ning","Rosie", "Rui",
+#              "Shengyan", "Sihang", "Wen", "Yipei", "Yirui", 
+#              "Yu", "Zeyu", "Zidan", "Ziyue1"
+#              ]
+
+# user_list = ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", 
+#              "Junwei", "minglei", "Minjie", "Mingxuan","Rosie", 
+#              "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", 
+#              "Ziyue1"
+#              ]
+
+# user_list = ["Jingwei", "Ning", "Wen", "Shengyan"]
 
 # user_list = ["Chuan", "Gujing", "Haofan", "Junwei", "Yirui"]
 # user_list = ["Chuan"]
 # user_list = ["Zeyu"]
 # user_list = ["JingweiObj", "ZeyuObj"]
-# user_list = ["JingweiPad", "ZeyuPad"]
+user_list = ["HaochenPad", "JingweiPad", "LinweiPad", "NingPad", "RuiPad", 
+             "ShengyanPad", "WeiPad", "WenPad", "YipeiPad", "YuPad", 
+             "ZeyuPad"]
 
 # user_list = ["Chuan", "Jimmy", "minglei", "Zeyu", "Ziyue"]
 # user_othersetting_list = ["Jingwei", "minglei", "Minjie", "Wen", "Zeyu"]
@@ -57,15 +68,23 @@ feature_names = [
     # "opticalflowRAFT_edge_" + "3040" + "_downsample_480p_s22",
     # "all_processpos_norm_downsample_480p_180s22", # 0.389
     # "all_processpos_norm_downsample_480p_240s22", # 0.442
+    # "all_processpos_norm_downsample_480p_180srs22", # 0.391
+    # "all_processpos_norm_downsample_480p_240srs22", # 0.437
 
-    "all_processpos_norm_downsample_480p_s22", # 0.504
-    # "all_processpos_norm_downsample_480p_op2",
+    # "all_processpos_norm_downsample_480p_rhs22", # right hand hold 0.532
+    # "all_processpos_norm_downsample_480p_dss22", # put on desk 0.523
+
+    # "all_processpos_norm_downsample_480p_s22", # 0.504
+    "all_processpos_norm_downsample_480p_op2",
     # "opticalflowRAFT_varyRef_" + grid_dim + "_downsample_480p_s22",
     # "opticalflowRAFT_" + grid_dim + "_downsample_480p_s22",
     # "opticalflowRAFT_border_" + grid_dim + "_downsample_480p_s22", # 0.492
     # "egomotion_rot_downsample_480p_s22",
     # "opticalflowRAFT_border_varyRef_" + grid_dim + "_downsample_480p_s22",
-    "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_s22", # Best after fuse with eyeFeat? # combin 0.497
+    # "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_s22", # Best after fuse with eyeFeat? # freeze 0.533
+    # "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_rhs22",
+    # "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_dss22",
+    "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_op2",
     # "objYOLO_downsample_480p_s22",
     # "opticalflowRAFT_edge_varyRef_" + grid_dim + "_downsample_480p_s22",
     # "opticalflowRAFT_obj_" + grid_dim + "_downsample_480p_s22" # 0.504, 0.515 freeze
@@ -77,7 +96,14 @@ feature_names = [
 # unchanged between single-feature runs so they are scored on the same test files.
 # Leave empty to split on feature_names only.
 split_ref_features = [
-    "all_processpos_norm_downsample_480p_s22", # 51.2%
+    # "all_processpos_norm_downsample_480p_s22", # 51.2%
+    # "all_processpos_norm_downsample_480p_rhs22",
+    # "all_processpos_norm_downsample_480p_dss22",
     # "opticalflowRAFT_" + grid_dim + "_downsample_480p_s22", # 25.1%
-    "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_s22", # 28.0%
-    ]
+    "all_processpos_norm_downsample_480p_op2", # 0.590 pad users only exist here, s22 refs give 0 common files
+    # "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_s22", # 28.0%
+    # "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_rhs22",
+    # "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_dss22",
+    "opticalflowRAFT_edge_" + grid_dim + "_downsample_480p_op2",
+    # "opticalflowRAFT_obj_" + grid_dim + "_downsample_480p_s22" # 
+]

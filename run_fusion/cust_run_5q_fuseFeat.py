@@ -24,10 +24,10 @@ subprocess.run(["python", "run_fusion/main_5q_fuseFeat.py",
                       "opticalflowRAFT_edge_22_downsample_480p_srs22", 
                   #     "opticalflowRAFT_edge_22_downsample_480p_s22",
                 "--no_crop_all", # uncomment to skip crop for every feature, regardless of --no_crop_features
-                "--fusion_type", "gated", # 'same_time', 'late', 'all_time', "feature", "both", "gated"
+                "--fusion_type", "same_time", # 'same_time', 'late', 'all_time', "feature", "both", "gated"
                 # Stage 2 of "train eye first, then freeze": load the eye-only model of the same try and keep its branch fixed
-                "--pretrained_model", "results/model_all_processpos_norm_downsample_480p_s22_5q_fuseFeat_try0.pth",
-            #     "--freeze_features", "all_processpos_norm_downsample_480p_s22",
+                "--pretrained_model", "results/model_all_processpos_norm_downsample_480p_op2_3q_fuseFeat_try1.pth",
+                "--freeze_features", "all_processpos_norm_downsample_480p_op2",
                 "--use_loss_fusion", "True",
                 "--pass_band", "1", "10", # 1-10 for optiflowRAFT edge
                 "--lambda_aux", "0.1",
