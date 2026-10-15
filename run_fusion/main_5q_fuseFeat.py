@@ -669,14 +669,14 @@ def main(config):
                 wandb_run.log(wandb_log, step=epoch)
 
             utils.save_model(
-                os.path.join(config['data_dir'], 'model_last.pth'),
+                os.path.join(config['save_dir'], 'model_last.pth'),
                 epoch,
                 model,
             )
 
             if config['lr_scheduler'] == 'step' and epoch == config['lr_step'][lr_step]:
                 utils.save_model(
-                    os.path.join(config['data_dir'], 'model_last.pth'),
+                    os.path.join(config['save_dir'], 'model_last.pth'),
                     epoch,
                     model,
                 )
