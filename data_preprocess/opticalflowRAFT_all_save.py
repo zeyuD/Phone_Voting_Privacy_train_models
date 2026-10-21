@@ -40,11 +40,11 @@ setups = {
     #     "users": ["JingweiObj", "ZeyuObj"],
     #     "device": "phone_s22/"
     #       },
-    "pad_op2": {
-        "users": ["HaochenPad", "LinweiPad", "NingPad", "RuiPad", "ShengyanPad", 
-                  "WeiPad", "WenPad", "YipeiPad", "YuPad"],
-        "device": "pad_op2/"
-         },
+    # "pad_op2": {
+    #     "users": ["HaochenPad", "LinweiPad", "NingPad", "RuiPad", "ShengyanPad", 
+    #               "WeiPad", "WenPad", "YipeiPad", "YuPad"],
+    #     "device": "pad_op2/"
+    #      },
     # "phonesr_s22": {
     #     "users": ["Chuan", "Gujing", "Haofan", "Jimmy", "Jingwei", "Junwei", "Minjie", "minglei", "Mingxuan", "Rosie", "Sihang", "Wen", "Yirui", "Zeyu", "Zidan", "Ziyue", "Ziyue1"],
     #     "device": "phonesr_s22/",
@@ -59,14 +59,30 @@ setups = {
     # "phoneds_s22": {
     #     "users": ["Jingwei", "Ning", "Wen", "Shengyan"],
     #     "device": "phoneds_s22/"
-    #   }
+    #   },
+    # "phone180sr_s22": {
+    #     "users": ["Chuan", "Haofan", "Jimmy", "Jingwei", "minglei" 
+    #               "Mingxuan", "Wen", "Zeyu","Ziyue"],
+    #     "device": "phone180sr_s22/"
+    # }
+    # "phonehori_s22": {
+    #     "users": ["Jingwei", "Shengyan", "Wen"],
+    #     "device": "phonehori_s22/"
+    # },
+    "padhori_op2": {
+        "users": ["JingweiPad", "ShengyanPad", "WenPad"],
+        "device": "padhori_op2/"
+    }
 }
 # suffix = "_downsample_480p_s22"
-suffix = "_downsample_480p_op2"
+# suffix = "_downsample_480p_op2"
 # suffix = "_downsample_480p_srs22"
+# suffix = "_downsample_480p_180srs22"
 # suffix = "_downsample_480p_downs22"
 # suffix = "_downsample_480p_rhs22"
 # suffix = "_downsample_480p_dss22"
+# suffix = "_downsample_480p_horis22"
+suffix = "_downsample_480p_horiop2"
 grid_tag = f"{M}{N}"
 prefix = "opticalflowRAFT_" + grid_tag
 prefix_border = "opticalflowRAFT_border_" + grid_tag

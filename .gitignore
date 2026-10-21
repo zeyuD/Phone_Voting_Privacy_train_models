@@ -39,5 +39,6 @@ mvts_transformer
 # Weights & Biases run logs
 wandb/
 
-# Saved models
-results/*.pth
+# Results: ignore everything inside, keep the folder via .gitkeep
+results/*
+!results/.gitkeep

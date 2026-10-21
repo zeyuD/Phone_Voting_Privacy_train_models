@@ -42,6 +42,8 @@ EYE_SUFFIX_TO_SETUP = {
     "240srs22": "phone240sr_s22",
     "rhs22": "phonerh_s22",
     "dss22": "phoneds_s22",
+    "horis22": "phonehori_s22",
+    "horiop2": "padhori_op2",
 }
 
 

@@ -1,0 +1,1005 @@
+"""
+Modified by Zeyu Deng
+
+Few-shot attacker: the attacker model plus --num_fewshot target-user files per vote in training,
+see data_fewshot.py.
+Copy of main_5q_fuseFeat.py otherwise.
+
+Originally written by George Zerveas
+
+Multimodal version:
+- Data is stored in my_data.all_df_dict
+- Each modality/feature has its own dataframe
+- Normalizer supports dict[str, pd.DataFrame]
+"""
+
+import logging
+
+logging.basicConfig(format='%(asctime)s | %(levelname)s : %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+logger.info("Loading packages ...")
+
+import os
+import sys
+import time
+import pickle
+import json
+
+import pandas as pd
+import numpy as np
+
+from tqdm import tqdm
+
+import torch
+from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
+
+from sklearn.metrics import confusion_matrix
+
+# Add parent directory of this file to sys.path
+sys.path.append(
+    os.path.abspath(
+        os.path.join(os.path.dirname(__file__), '..', 'mvts_transformer_M', 'src')
+    )
+)
+
+from options import Options
+from running_M import setup, pipeline_factory, validate, check_progress, NEG_METRICS
+from utils import utils
+from datasets_M.datasplit import split_dataset
+from models_M.ts_transformer import model_factory
+from models_M.loss import get_loss_module
+from optimizers import get_optimizer
+
+from data_fuseFeat import Normalizer
+from data_fewshot import data_factory
+from variables_fuseFeat import vote_list, num_try, user_list
+
+num_vote = len(vote_list)
+
+
+def split_tag(config):
+    """Names this split in result files and wandb runs."""
+    shots = "full" if config['num_fewshot'] < 0 else str(config['num_fewshot'])
+    return shots + "shot_" + config['target_user']
+
+
+def pick_shots(data_obj, shot_pool, num_fewshot, seed):
+    """
+    num_fewshot samples per vote from shot_pool (all of them when num_fewshot is -1),
+    drawn again for every seed.
+    """
+    rng = np.random.default_rng(seed)
+    pool_labels = data_obj.labels_df.iloc[shot_pool, 0].values
+    shots = []
+
+    for v, vote in enumerate(vote_list):
+        pool_v = shot_pool[pool_labels == v]
+        k = len(pool_v) if num_fewshot < 0 else num_fewshot
+
+        if k > len(pool_v):
+            logger.warning("Vote {} has only {} target-user files for {} shots; using all of them".format(vote, len(pool_v), k))
+            k = len(pool_v)
+
+        shots.extend(rng.choice(pool_v, size=k, replace=False))
+
+    return np.array(shots, dtype=int)
+
+
+def start_wandb_run(config, feature_tag, try_idx, model, data_sizes):
+    """
+    Start one Weights & Biases run for one try. Returns None when --wandb_project is not set.
+
+    Runs of the same experiment are grouped, so the tries can be averaged in the wandb UI.
+    """
+    if config.get('wandb_project') is None:
+        return None
+
+    try:
+        import wandb
+    except ImportError:
+        raise SystemExit("--wandb_project is set but wandb is not installed. Run: pip install wandb")
+
+    logged_config = {
+        k: v for k, v in config.items()
+        if isinstance(v, (int, float, str, bool, list, tuple)) or v is None
+    }
+    logged_config.update(data_sizes)
+    logged_config.update({
+        'features': feature_tag,
+        'num_users': len(user_list),
+        'num_classes': len(vote_list),
+        'num_parameters': utils.count_parameters(model),
+        'try': try_idx,
+    })
+
+    # wandb limits the length of run names, groups and job types (64-128 characters), and fused
+    # feature names exceed it. The full names stay in the run config under 'features'.
+    short_tag = feature_tag.replace("_downsample_480p", "")[:80] + "_" + split_tag(config)
+
+    run = wandb.init(
+        project=config['wandb_project'],
+        group=short_tag + "_" + config['initial_timestamp'],
+        name=short_tag + "_try" + str(try_idx),
+        job_type="train",
+        config=logged_config,
+        reinit=True,
+    )
+
+    # Gradient histograms per layer
+    run.watch(model, log="gradients", log_freq=50)
+
+    return run
+
+
+def scheduled_lr(config, epoch):
+    """
+    Learning rate set at the start of `epoch` (1-based) by warmup and the cosine schedule.
+
+    Returns None when this epoch's rate is decided elsewhere ('step' and 'plateau' after warmup).
+    """
+    base_lr = config['lr']
+    warmup = config.get('warmup_epochs', 0)
+
+    if epoch <= warmup:
+        return base_lr * epoch / warmup
+
+    if config.get('lr_scheduler', 'step') == 'cosine':
+        min_lr = config.get('min_lr', 0.0)
+        progress = (epoch - warmup - 1) / max(1, config['epochs'] - warmup - 1)
+        return min_lr + 0.5 * (base_lr - min_lr) * (1 + np.cos(np.pi * progress))
+
+    return None
+
+
+def get_feature_dims(data_obj):
+    """
+    Return feature dimension for each modality.
+    Example:
+        {
+            "eyeFeat": 39,
+            "opticalFlow": 20
+        }
+    """
+    return {
+        feature_name: df.shape[1]
+        for feature_name, df in data_obj.all_df_dict.items()
+    }
+
+
+def normalize_multimodal_data(
+    my_data,
+    val_data,
+    test_data,
+    train_indices,
+    val_indices,
+    test_indices,
+    config,
+):
+    """
+    Normalize multimodal data using the new Normalizer class.
+
+    Assumes:
+        my_data.all_df_dict:
+            {
+                "eyeFeat": DataFrame,
+                "opticalFlow": DataFrame,
+                ...
+            }
+
+    The normalizer stores one mean/std/min/max per modality.
+    """
+
+    normalizer = None
+
+    if config['norm_from']:
+        with open(config['norm_from'], 'rb') as f:
+            norm_dict = pickle.load(f)
+
+        normalizer = Normalizer(**norm_dict)
+
+    elif config['normalization'] is not None:
+        normalizer = Normalizer(config['normalization'])
+
+        train_data_dict = {
+            feature_name: df.loc[train_indices]
+            for feature_name, df in my_data.all_df_dict.items()
+        }
+
+        normalized_train_dict = normalizer.normalize(train_data_dict)
+
+        for feature_name in my_data.all_df_dict.keys():
+            my_data.all_df_dict[feature_name].loc[train_indices] = normalized_train_dict[feature_name]
+
+        if not config['normalization'].startswith('per_sample'):
+            norm_dict = normalizer.__dict__
+
+            with open(os.path.join(config['output_dir'], 'normalization.pickle'), 'wb') as f:
+                pickle.dump(norm_dict, f, pickle.HIGHEST_PROTOCOL)
+
+    if normalizer is not None:
+        if len(val_indices):
+            val_data_dict = {
+                feature_name: df.loc[val_indices]
+                for feature_name, df in val_data.all_df_dict.items()
+            }
+
+            normalized_val_dict = normalizer.normalize(val_data_dict)
+
+            for feature_name in val_data.all_df_dict.keys():
+                val_data.all_df_dict[feature_name].loc[val_indices] = normalized_val_dict[feature_name]
+
+        if len(test_indices):
+            test_data_dict = {
+                feature_name: df.loc[test_indices]
+                for feature_name, df in test_data.all_df_dict.items()
+            }
+
+            normalized_test_dict = normalizer.normalize(test_data_dict)
+
+            for feature_name in test_data.all_df_dict.keys():
+                test_data.all_df_dict[feature_name].loc[test_indices] = normalized_test_dict[feature_name]
+
+    return normalizer
+
+
+def build_input_dict(data_obj, indices, device=None):
+    """
+    Convert multimodal dataframe dictionary into a tensor dictionary.
+
+    Output:
+        {
+            "eyeFeat": Tensor [B, T, D_eye],
+            "opticalFlow": Tensor [B, T, D_flow],
+            ...
+        }
+    """
+
+    input_dict = {}
+
+    for feature_name, df in data_obj.all_df_dict.items():
+        modality_samples = []
+
+        for sample_id in indices:
+            x_i = df.loc[sample_id].values
+            modality_samples.append(x_i)
+
+        x = np.stack(modality_samples, axis=0)
+        x = torch.tensor(x, dtype=torch.float32)
+
+        if device is not None:
+            x = x.to(device)
+
+        input_dict[feature_name] = x
+
+    return input_dict
+
+
+def build_onehot_targets(labels_df, indices, num_classes):
+    """
+    Build one-hot targets from labels_df.
+
+    Output:
+        Tensor [B, num_classes]
+    """
+
+    targets = []
+
+    for sample_id in indices:
+        label_i = labels_df.iloc[sample_id].values
+        label_i = int(label_i.item())
+
+        target_i = [0] * num_classes
+        target_i[label_i] = 1
+
+        targets.append(target_i)
+
+    targets = torch.tensor(targets, dtype=torch.float32)
+
+    return targets
+
+
+def main(config):
+
+    total_start_time = time.time()
+
+    file_handler = logging.FileHandler(os.path.join(config['output_dir'], 'output.log'))
+    logger.addHandler(file_handler)
+
+    logger.info('Running:\n{}\n'.format(' '.join(sys.argv)))
+
+    if config['seed'] is not None:
+        torch.manual_seed(config['seed'])
+
+    device = config["device"]
+    logger.info("Using device: {}".format(device))
+
+    if device == 'cuda':
+        logger.info("Device index: {}".format(torch.cuda.current_device()))
+
+    # ---------------------------------------------------------
+    # Build training data
+    # ---------------------------------------------------------
+    logger.info("Loading and preprocessing data ...")
+
+    data_class = data_factory[config['data_class']]
+
+    my_data = data_class(
+        'train',
+        config['data_dir'],
+        pattern=config['pattern'],
+        n_proc=config['n_proc'],
+        limit_size=config['limit_size'],
+        config=config,
+    )
+
+    # New multimodal feature dimensions
+    feature_dims = get_feature_dims(my_data)
+    config["feature_dims"] = feature_dims
+    config["num_modalities"] = len(feature_dims)
+    config["feat_dim"] = sum(feature_dims.values())  # optional backward compatibility
+
+    logger.info("Feature dimensions per modality: {}".format(feature_dims))
+
+    if config['task'] == 'classification':
+        validation_method = 'StratifiedShuffleSplit'
+        labels = my_data.labels_df.values.flatten()
+    else:
+        validation_method = 'ShuffleSplit'
+        labels = None
+
+    print("Data checking:")
+    print("Feature dims:", feature_dims)
+    print("Labels shape:", my_data.labels_df.shape)
+    print("Number of IDs:", len(my_data.all_IDs))
+
+    # ---------------------------------------------------------
+    # Split dataset
+    # ---------------------------------------------------------
+    # Target-user samples in the training data are the pool the shots are drawn from. Only the
+    # other users are split into train/val, and new shots are added to train in every try.
+    all_IDs = np.array(my_data.all_IDs)
+    is_target = my_data.users_df.iloc[all_IDs, 0].values == config['target_user']
+    shot_pool = all_IDs[is_target]
+    other_IDs = all_IDs[~is_target]
+
+    test_indices = None
+    val_data = my_data
+    val_indices = []
+
+    if config['val_ratio'] > 0:
+        train_indices, val_indices, test_indices = split_dataset(
+            data_indices=other_IDs,
+            validation_method=validation_method,
+            n_splits=1,
+            validation_ratio=config['val_ratio'],
+            test_set_ratio=config['test_ratio'],
+            test_indices=test_indices,
+            random_seed=1337,
+            labels=labels[other_IDs] if labels is not None else None,
+        )
+
+        train_indices = train_indices[0]
+        val_indices = val_indices[0]
+
+    else:
+        train_indices = other_IDs
+
+        if test_indices is None:
+            test_indices = []
+
+    print("Train indices: ", train_indices)
+    print("Test indices: ", test_indices)
+    print("Val indices: ", val_indices)
+
+    logger.info("{} samples may be used for training".format(len(train_indices)))
+    logger.info("{} samples will be used for validation".format(len(val_indices)))
+    logger.info("{} samples will be used for testing".format(len(test_indices)))
+
+    with open(os.path.join(config['output_dir'], 'data_indices.json'), 'w') as f:
+        try:
+            json.dump(
+                {
+                    'train_indices': list(map(int, train_indices)),
+                    'val_indices': list(map(int, val_indices)),
+                    'test_indices': list(map(int, test_indices)),
+                },
+                f,
+                indent=4,
+            )
+        except ValueError:
+            json.dump(
+                {
+                    'train_indices': list(train_indices),
+                    'val_indices': list(val_indices),
+                    'test_indices': list(test_indices),
+                },
+                f,
+                indent=4,
+            )
+
+    # ---------------------------------------------------------
+    # Build explicit test data
+    # ---------------------------------------------------------
+    test_data = data_class(
+        'test',
+        config['data_dir'],
+        pattern=config['pattern'],
+        n_proc=config['n_proc'],
+        limit_size=config['limit_size'],
+        config=config,
+    )
+
+    test_indices = test_data.all_IDs
+
+    # ---------------------------------------------------------
+    # Normalize multimodal features
+    # ---------------------------------------------------------
+    normalizer = normalize_multimodal_data(
+        my_data=my_data,
+        val_data=val_data,
+        test_data=test_data,
+        train_indices=train_indices,
+        val_indices=val_indices,
+        test_indices=test_indices,
+        config=config,
+    )
+
+    # ---------------------------------------------------------
+    # Prepare result CSV files
+    # ---------------------------------------------------------
+    column_names = ['pred_labels', 'target_labels']
+
+    for v in range(len(vote_list)):
+        column_names.append('score_' + vote_list[v])
+
+    df2 = pd.DataFrame(columns=column_names)
+    df2.to_csv("train_pred_labels.csv", index=False)
+
+    df3 = pd.DataFrame(columns=column_names)
+    df3.to_csv("pred_labels.csv", index=False)
+
+    df4 = pd.DataFrame(columns=vote_list)
+    df4.to_csv("acc_avg.csv", index=False)
+
+    # ---------------------------------------------------------
+    # Training and testing loop
+    # ---------------------------------------------------------
+    # Identifies the feature set in result file names, so runs don't overwrite each other
+    feature_tag = "+".join(feature_dims.keys())
+    run_tag = feature_tag + "_" + split_tag(config)
+    result_dir = os.path.join("results", "fewshot")
+    os.makedirs(result_dir, exist_ok=True)
+    all_try_preds = []
+
+    # Normalization above is fitted on the other users only, the same for every try
+    other_train_indices = train_indices
+
+    for t in range(num_try):
+
+        total_epoch_time = 0
+
+        shots = pick_shots(my_data, shot_pool, config['num_fewshot'], seed=t)
+        train_indices = np.concatenate([other_train_indices, shots])
+        logger.info("Try {}: {} shots of {}: {}".format(
+            t, len(shots), config['target_user'], list(my_data.files_df.iloc[shots, 0])))
+
+        # -----------------------------------------------------
+        # Create model
+        # -----------------------------------------------------
+        logger.info("Creating model ...")
+
+        model = model_factory(config, my_data)
+
+        if config['freeze']:
+            for name, param in model.named_parameters():
+                if name.startswith('output_layer'):
+                    param.requires_grad = True
+                else:
+                    param.requires_grad = False
+
+        if config.get('pretrained_model'):
+            pretrained_path = config['pretrained_model'].replace('{try}', str(t)).replace('{split}', split_tag(config))
+            checkpoint = torch.load(pretrained_path, map_location='cpu')
+            loaded_features, primary_head_loaded = model.load_pretrained_branches(checkpoint['state_dict'])
+
+            logger.info("Loaded pre-trained branches {} from {}".format(loaded_features, pretrained_path))
+            if primary_head_loaded:
+                logger.info("Loaded the pre-trained classifier of {} into the primary path".format(model.primary_feature))
+
+            not_loaded = set(config.get('freeze_features') or []) - set(loaded_features)
+            if not_loaded:
+                raise ValueError("--freeze_features {} not found in {}".format(sorted(not_loaded), pretrained_path))
+
+        if config.get('freeze_features'):
+            if not config.get('pretrained_model'):
+                logger.warning("--freeze_features is set without --pretrained_model: the frozen branches keep random weights.")
+            model.freeze_features(config['freeze_features'])
+
+        logger.info("Model:\n{}".format(model))
+        logger.info("Total number of parameters: {}".format(utils.count_parameters(model)))
+        logger.info("Trainable parameters: {}".format(utils.count_parameters(model, trainable=True)))
+
+        # -----------------------------------------------------
+        # Optimizer
+        # -----------------------------------------------------
+        if config['global_reg']:
+            weight_decay = config['l2_reg']
+            output_reg = None
+        else:
+            weight_decay = 0
+            output_reg = config['l2_reg']
+
+        optim_class = get_optimizer(config['optimizer'])
+        optimizer = optim_class(model.parameters(), lr=config['lr'], weight_decay=weight_decay)
+
+        start_epoch = 0
+        lr_step = 0
+        lr = config['lr']
+
+        plateau_scheduler = None
+        if config['lr_scheduler'] == 'plateau':
+            plateau_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                optimizer,
+                mode='min' if config['key_metric'] in NEG_METRICS else 'max',
+                factor=config['lr_factor'][0],
+                patience=config['lr_patience'],
+                min_lr=config['min_lr'],
+            )
+
+        if args.load_model:
+            model, optimizer, start_epoch = utils.load_model(
+                model,
+                config['load_model'],
+                optimizer,
+                config['resume'],
+                config['change_output'],
+                config['lr'],
+                config['lr_step'],
+                config['lr_factor'],
+            )
+
+        model.to(device)
+
+        loss_module = get_loss_module(config)
+
+        # -----------------------------------------------------
+        # Data generators
+        # -----------------------------------------------------
+        dataset_class, collate_fn, runner_class = pipeline_factory(config)
+
+        val_dataset = dataset_class(val_data, val_indices)
+
+        val_loader = DataLoader(
+            dataset=val_dataset,
+            batch_size=config['batch_size'],
+            shuffle=False,
+            num_workers=config['num_workers'],
+            pin_memory=True,
+            collate_fn=lambda x: collate_fn(x, max_len=model.max_len),
+        )
+
+        train_dataset = dataset_class(my_data, train_indices)
+
+        train_loader = DataLoader(
+            dataset=train_dataset,
+            batch_size=config['batch_size'],
+            shuffle=True,
+            num_workers=config['num_workers'],
+            pin_memory=True,
+            collate_fn=lambda x: collate_fn(x, max_len=model.max_len),
+        )
+
+        trainer = runner_class(
+            model,
+            train_loader,
+            device,
+            loss_module,
+            optimizer,
+            l2_reg=output_reg,
+            print_interval=config['print_interval'],
+            console=config['console'],
+        )
+
+        val_evaluator = runner_class(
+            model,
+            val_loader,
+            device,
+            loss_module,
+            print_interval=config['print_interval'],
+            console=config['console'],
+        )
+
+        tensorboard_writer = SummaryWriter(config['tensorboard_dir'])
+
+        wandb_run = start_wandb_run(
+            config, feature_tag, t, model,
+            data_sizes={
+                'num_train': len(train_indices),
+                'num_val': len(val_indices),
+                'num_test': len(test_indices),
+            },
+        )
+
+        best_value = 1e16 if config['key_metric'] in NEG_METRICS else -1e16
+        metrics = []
+        best_metrics = {}
+
+        # -----------------------------------------------------
+        # Validate before training
+        # -----------------------------------------------------
+        aggr_metrics_val, best_metrics, best_value = validate(
+            val_evaluator,
+            tensorboard_writer,
+            config,
+            best_metrics,
+            best_value,
+            epoch=0,
+        )
+
+        metrics_names, metrics_values = zip(*aggr_metrics_val.items())
+        metrics.append(list(metrics_values))
+
+        if wandb_run is not None:
+            wandb_run.log({'val/' + k: v for k, v in aggr_metrics_val.items() if k != 'epoch'}, step=0)
+
+        # -----------------------------------------------------
+        # Train
+        # -----------------------------------------------------
+        logger.info('Starting training...')
+
+        for epoch in tqdm(
+            range(start_epoch + 1, config["epochs"] + 1),
+            desc='Training Epoch',
+            leave=False,
+        ):
+            mark = epoch if config['save_all'] else 'last'
+
+            epoch_start_time = time.time()
+
+            new_lr = scheduled_lr(config, epoch)
+            if new_lr is not None:
+                lr = new_lr
+                for param_group in optimizer.param_groups:
+                    param_group['lr'] = lr
+
+            aggr_metrics_train = trainer.train_epoch(epoch)
+
+            epoch_runtime = time.time() - epoch_start_time
+
+            print()
+            print_str = 'Epoch {} Training Summary: '.format(epoch)
+
+            for k, v in aggr_metrics_train.items():
+                tensorboard_writer.add_scalar('{}/train'.format(k), v, epoch)
+                print_str += '{}: {:8f} | '.format(k, v)
+
+            logger.info(print_str)
+            logger.info(
+                "Epoch runtime: {} hours, {} minutes, {} seconds\n".format(
+                    *utils.readable_time(epoch_runtime)
+                )
+            )
+
+            total_epoch_time += epoch_runtime
+
+            wandb_log = {'train/' + k: v for k, v in aggr_metrics_train.items() if k != 'epoch'}
+            wandb_log['lr'] = lr
+            if hasattr(model, 'gate'):
+                wandb_log['gate'] = model.gate.item()
+            wandb_log['epoch_runtime'] = epoch_runtime
+
+            if (
+                epoch == config["epochs"]
+                or epoch == start_epoch + 1
+                or epoch % config['val_interval'] == 0
+            ):
+                aggr_metrics_val, best_metrics, best_value = validate(
+                    val_evaluator,
+                    tensorboard_writer,
+                    config,
+                    best_metrics,
+                    best_value,
+                    epoch,
+                )
+
+                metrics_names, metrics_values = zip(*aggr_metrics_val.items())
+                metrics.append(list(metrics_values))
+
+                wandb_log.update({'val/' + k: v for k, v in aggr_metrics_val.items() if k != 'epoch'})
+                wandb_log['val/best_' + config['key_metric']] = best_value
+
+                if plateau_scheduler is not None and epoch > config['warmup_epochs']:
+                    plateau_scheduler.step(aggr_metrics_val[config['key_metric']])
+
+                    if optimizer.param_groups[0]['lr'] != lr:
+                        lr = optimizer.param_groups[0]['lr']
+                        logger.info('Learning rate updated to: {}'.format(lr))
+
+            if wandb_run is not None:
+                wandb_run.log(wandb_log, step=epoch)
+
+            utils.save_model(
+                os.path.join(config['save_dir'], 'model_last.pth'),
+                epoch,
+                model,
+            )
+
+            if config['lr_scheduler'] == 'step' and epoch == config['lr_step'][lr_step]:
+                utils.save_model(
+                    os.path.join(config['save_dir'], 'model_last.pth'),
+                    epoch,
+                    model,
+                )
+
+                lr = lr * config['lr_factor'][lr_step]
+
+                if lr_step < len(config['lr_step']) - 1:
+                    lr_step += 1
+
+                logger.info('Learning rate updated to: {}'.format(lr))
+
+                for param_group in optimizer.param_groups:
+                    param_group['lr'] = lr
+
+            if config['harden'] and check_progress(epoch):
+                train_loader.dataset.update()
+                val_loader.dataset.update()
+
+        # -----------------------------------------------------
+        # Export metrics
+        # -----------------------------------------------------
+        header = metrics_names
+
+        metrics_filepath = os.path.join(
+            config["output_dir"],
+            "metrics_" + config["experiment_name"] + ".xls",
+        )
+
+        book = utils.export_performance_metrics(
+            metrics_filepath,
+            metrics,
+            header,
+            sheet_name="metrics",
+        )
+
+        # Keep the trained model of this try under a name that later runs do not overwrite
+        model_path = os.path.join(result_dir, "model_" + run_tag + "_" + str(len(vote_list)) + "q_fuseFeat_try" + str(t) + ".pth")
+        utils.save_model(model_path, config["epochs"], model)
+        logger.info("Saved model to {}".format(model_path))
+
+        utils.register_record(
+            config["records_file"],
+            config["initial_timestamp"],
+            config["experiment_name"],
+            best_metrics,
+            aggr_metrics_val,
+            comment=config['comment'],
+        )
+
+        logger.info('Best {} was {}. Other metrics: {}'.format(
+            config['key_metric'],
+            best_value,
+            best_metrics,
+        ))
+
+        logger.info('All Done!')
+
+        total_runtime = time.time() - total_start_time
+
+        logger.info(
+            "Total runtime: {} hours, {} minutes, {} seconds\n".format(
+                *utils.readable_time(total_runtime)
+            )
+        )
+
+        # -----------------------------------------------------
+        # Manual full test inference
+        # -----------------------------------------------------
+        num_vote = len(vote_list)
+
+        model.eval()
+
+        test_indices_list = list(test_indices)
+        train_indices_list = list(my_data.all_IDs)
+
+        input_dict = build_input_dict(
+            data_obj=test_data,
+            indices=test_indices_list,
+            device=device,
+        )
+
+        train_input_dict = build_input_dict(
+            data_obj=my_data,
+            indices=train_indices_list,
+            device=device,
+        )
+
+        targets = build_onehot_targets(
+            labels_df=test_data.labels_df,
+            indices=test_indices_list,
+            num_classes=num_vote,
+        )
+
+        train_targets = build_onehot_targets(
+            labels_df=my_data.labels_df,
+            indices=train_indices_list,
+            num_classes=num_vote,
+        )
+
+        padding_masks = torch.ones(
+            (len(test_indices_list), model.max_len),
+            dtype=torch.bool,
+            device=device,
+        )
+
+        train_padding_masks = torch.ones(
+            (len(train_indices_list), model.max_len),
+            dtype=torch.bool,
+            device=device,
+        )
+
+        with torch.no_grad():
+            predictions = model(input_dict, padding_masks)
+            train_predictions = model(train_input_dict, train_padding_masks)
+
+        targets = targets.to(device)
+        train_targets = train_targets.to(device)
+
+        probs_p = predictions
+        probs_t = targets
+
+        predict_labels = []
+        predict_scores = []
+        target_labels = []
+
+        train_predict_labels = []
+        train_predict_scores = []
+        train_target_labels = []
+
+        for i in range(probs_p.shape[0]):
+            predict_labels.append(torch.argmax(probs_p[i], dim=0).item())
+            predict_scores.append(probs_p[i].detach().cpu().tolist())
+            target_labels.append(torch.argmax(probs_t[i], dim=0).item())
+
+        for j in range(train_predictions.shape[0]):
+            train_predict_labels.append(torch.argmax(train_predictions[j], dim=0).item())
+            train_predict_scores.append(train_predictions[j].detach().cpu().tolist())
+            train_target_labels.append(torch.argmax(train_targets[j], dim=0).item())
+
+        # -----------------------------------------------------
+        # Save test predictions
+        # -----------------------------------------------------
+        predict_scores = np.array(predict_scores)
+
+        pred_dict = {
+            'pred_labels': predict_labels,
+            'target_labels': target_labels,
+        }
+
+        for v, vote in enumerate(vote_list):
+            pred_dict['score_' + vote] = predict_scores[:, v]
+
+        df = pd.DataFrame(pred_dict)
+        df.to_csv('pred_labels.csv', index=False)
+
+        # Same predictions with sample identity, kept for every try
+        id_df = pd.DataFrame({
+            'try': t,
+            'user': test_data.users_df.iloc[test_indices_list, 0].values,
+            'vote': [vote_list[label] for label in target_labels],
+            'file': test_data.files_df.iloc[test_indices_list, 0].values,
+        })
+        all_try_preds.append(pd.concat([id_df, df], axis=1))
+
+        # -----------------------------------------------------
+        # Save train predictions
+        # -----------------------------------------------------
+        train_predict_scores = np.array(train_predict_scores)
+
+        train_pred_dict = {
+            'pred_labels': train_predict_labels,
+            'target_labels': train_target_labels,
+        }
+
+        for v, vote in enumerate(vote_list):
+            train_pred_dict['score_' + vote] = train_predict_scores[:, v]
+
+        train_df = pd.DataFrame(train_pred_dict)
+        train_df.to_csv('train_pred_labels.csv', index=False)
+
+        # -----------------------------------------------------
+        # Confusion matrix and accuracy
+        # -----------------------------------------------------
+        cm = confusion_matrix(target_labels, predict_labels)
+        cm_norm = confusion_matrix(target_labels, predict_labels, normalize='true')
+
+        print(cm)
+        print(cm_norm)
+
+        acc = np.zeros((num_vote, 1))
+
+        for i in range(num_vote):
+            acc[i] = cm_norm[i][i]
+
+        print("Average accuracy: ", acc.mean())
+
+        df = pd.read_csv('acc_avg.csv')
+        df.loc[df.shape[0], :] = acc.flatten()
+        df.to_csv('acc_avg.csv', index=False)
+
+        if wandb_run is not None:
+            import wandb
+
+            test_log = {
+                'test/accuracy': float(np.mean(np.array(predict_labels) == np.array(target_labels))),
+                'test/balanced_accuracy': float(acc.mean()),
+                # accuracy of the final model on its own training data, to see the train/test gap
+                'train_final/accuracy': float(np.mean(np.array(train_predict_labels) == np.array(train_target_labels))),
+                'test/confusion_matrix': wandb.plot.confusion_matrix(
+                    y_true=target_labels, preds=predict_labels, class_names=list(vote_list)
+                ),
+            }
+            for v, vote in enumerate(vote_list):
+                test_log['test/accuracy_' + vote] = float(acc[v, 0])
+
+            wandb_run.log(test_log)
+            wandb_run.summary['best_val_' + config['key_metric']] = best_value
+            wandb_run.finish()
+
+        # -----------------------------------------------------
+        # Confused instances
+        # -----------------------------------------------------
+        confused_instances = []
+        confused_users = []
+        messed_up_classes = []
+
+        for i in range(len(predict_labels)):
+            if predict_labels[i] != target_labels[i]:
+                confused_instances.append(i)
+                confused_users.append(test_data.users_df.iloc[i].values[0])
+                messed_up_classes.append(predict_labels[i])
+
+    # ---------------------------------------------------------
+    # Save combined results from all tries
+    # ---------------------------------------------------------
+    df = pd.read_csv("acc_avg.csv")
+    df5 = df.apply(lambda x: pd.Series(x.dropna().values))
+    df5.to_csv(os.path.join(result_dir, "acc_avg_" + run_tag + "_" + str(num_vote) + "q_fuseFeat.csv"), index=False)
+
+    print(df5)
+
+    acc_avg = df5.mean().mean()
+    print("Accuracy average:", acc_avg)
+
+    pred_all_path = os.path.join(result_dir, "pred_labels_" + run_tag + "_" + str(num_vote) + "q_fuseFeat_alltries.csv")
+    pd.concat(all_try_preds, ignore_index=True).to_csv(pred_all_path, index=False)
+    print("Saved per-sample test predictions for all tries to", pred_all_path)
+
+    df7 = pd.read_csv("train_pred_labels.csv")
+    df7.to_csv(os.path.join(result_dir, "train_pred_labels_" + run_tag + "_" + str(num_vote) + "q_fuseFeat.csv"), index=False)
+
+    return best_value
+
+
+if __name__ == '__main__':
+
+    options = Options()
+    options.parser.add_argument('--feature_names', type=str, nargs='+', default=None,
+                                help="Features to load instead of feature_names in variables_fuseFeat.py, so "
+                                     "cust_run_*.py can train the eye feature alone first, then the fused model.")
+    args = options.parse()
+
+    if args.feature_names is not None:
+        # The data classes all read this list from variables_fuseFeat; replace its contents so they see the override
+        from run_fusion.variables_fuseFeat import feature_names
+        feature_names[:] = args.feature_names
+
+    if args.target_user is None:
+        raise SystemExit("--target_user is required: the user left out of training except for its shots, and tested on")
+
+    # Target-user files per vote added to training; -1 uses all of its even-position files
+    args.num_fewshot = int(args.num_fewshot)
+    config = setup(args)
+    main(config)

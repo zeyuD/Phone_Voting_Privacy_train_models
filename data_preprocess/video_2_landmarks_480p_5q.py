@@ -51,7 +51,8 @@ setups = {
     #     "save_dir": "phone240_s22/"
     #     },
     # "phone180sr_s22": {
-    #     "users": ["Chuan", "Jimmy", "minglei", "Zeyu", "Ziyue"],
+    #     # "users": ["Chuan", "Jimmy", "minglei", "Zeyu", "Ziyue"],
+    #     "users": ["Haofan", "Jingwei", "Mingxuan", "Wen"],
     #     "save_dir": "phone180sr_s22/"
     #     },
     # "phone240sr_s22": {
@@ -62,10 +63,10 @@ setups = {
     #     "users": ["HaochenPad", "LinweiPad", "NingPad", "RuiPad", "ShengyanPad", "WeiPad", "WenPad", "YipeiPad", "YuPad"],
     #     "save_dir": "pad_op2/"
     #     },
-    "phone_s22": {
-        "users": ["Haochen", "Linwei", "Rui", "Yipei", "Yu"],
-        "save_dir": "phone_s22/"
-        },
+    # "phone_s22": {
+    #     "users": ["Haochen", "Linwei", "Rui", "Yipei", "Yu"],
+    #     "save_dir": "phone_s22/"
+    #     },
     # "phone_s22": {
     #     "users": ["Ning", "Shengyan", "Wenl"],
     #     "save_dir": "phone_s22/"
@@ -78,6 +79,14 @@ setups = {
     #     "users": ["Jingwei", "Ning", "Shengyan", "Wen"],
     #     "save_dir": "phoneds_s22/"
     #     },
+    "phonehori_s22": {
+        "users": ["Jingwei", "Shengyan", "Wen"],
+        "save_dir": "phonehori_s22/"
+        },
+    "padhori_op2": {
+        "users": ["JingweiPad", "ShengyanPad", "WenPad"],
+        "save_dir": "padhori_op2/"
+        },
 }
 
 for setup, details in setups.items():

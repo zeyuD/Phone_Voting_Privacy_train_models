@@ -18,8 +18,9 @@ votes = ["A", "B", "C", "D", "E"]
 
 # Create a dictionary of setups, each will have different setup and users
 setups = {
-    "phone180sr_s22": ["Chuan", "Jimmy", "minglei", "Zeyu", "Ziyue"],
-    "phone240sr_s22": ["Chuan", "Jimmy", "minglei", "Zeyu", "Ziyue"],
+    # "phone180sr_s22": ["Chuan", "Jimmy", "minglei", "Zeyu", "Ziyue"],
+    # "phone240sr_s22": ["Chuan", "Jimmy", "minglei", "Zeyu", "Ziyue"],
+    "phone180sr_s22": ["Jingwei", "Mingxuan", "Wen", "Haofan"],
     }
 # Set to False to actually move the files, True only prints what would be done
 dry_run = False

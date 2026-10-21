@@ -16,7 +16,9 @@ votes = ["A", "B", "C", "D", "E"]
 
 # Create a dictionary of setups, each will have different setup and users
 setups = {
-    "phone_s22": ["Haochen", "Linwei", "Rui", "Yipei", "Yu"],
+    # "phone_s22": ["Haochen", "Linwei", "Rui", "Yipei", "Yu"],
+    "phonehori_s22": ["Jingwei", "Shengyan", "Wen"],
+    "padhori_op2": ["JingweiPad", "ShengyanPad", "WenPad"],
     }
 # Set to False to actually copy the files, True only prints what would be done
 dry_run = False
